@@ -1,0 +1,385 @@
+---
+title: "Have federal agencies become more partisan over time?"
+# author:
+# - name: Samiha Bhushan
+#   affiliation: '1'
+#   corresponding: yes
+#   address: Postal address
+#   email: my@email.com
+# shorttitle: Do members of Congress have an increasing level of influence on the outcome
+#   of federal agency financial rulemaking?
+output:
+    html_document:
+      highlight: zenburn
+      toc: true
+      toc_float: true
+      code_folding: hide
+#     df_print: paged
+# authornote: |
+#   Add complete departmental affiliations for each author here. Each new line herein must be indented, like this line.
+#   Enter author note here.
+# abstract: |
+#   O
+# keywords: keywords
+# wordcount: X
+# bibliography: r-references.bib
+# floatsintext: no
+# figurelist: no
+# tablelist: no
+# footnotelist: no
+# linenumbers: yes
+# mask: no
+# draft: no
+# documentclass: apa6
+# classoption: man
+# affiliation:
+# - id: '1'
+#   institution: University of Wisconsin-Madison
+---
+
+```{r setup, include = FALSE}
+# library("papaja")
+# r_refs("r-references.bib")
+## Sets defaults for R chunks
+knitr::opts_chunk$set(echo = TRUE, # echo = TRUE means that your code will show
+                      warning=FALSE,
+                      message=FALSE,
+                      fig.path='figs/', ## where to save figures
+                      fig.height = 3,
+                      fig.width = 4,
+                      fig.align = 'center')
+## Add any R packages you require. 
+## Here are some we will use in 811:
+requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
+              "broom",
+              "haven", 
+              "devtools",
+              "magrittr",
+              "margins",
+              "lmtest",
+              "viridisLite",
+              "truncnorm",
+              "ggridges",
+              "here")
+## Install any you don't have
+to_install <- c(!requires %in% rownames(installed.packages()))
+install.packages(c(requires[to_install], "NA"), repos = "https://cloud.r-project.org/" )
+## Load all required R packages
+library(tidyverse)
+library(broom)
+library(haven)
+library(magrittr)
+library(margins)
+library(here)
+library(ggplot2); theme_set(theme_bw()) # global plot theme
+## Colorblind and greyscale print-friendly scales
+library(viridisLite)
+  options(
+    ggplot2.continuous.color = "viridis",
+    ggplot2.continuous.fill = "viridis"
+  )
+  scale_color_discrete <- function(...)
+    scale_color_viridis_d(..., begin = 0, end = .7)
+  scale_fill_discrete <- function(...)
+    scale_fill_viridis_d(..., begin = 0, end = .7)
+```
+
+```{r analysis-preferences}
+# Seed for random number generation
+set.seed(42)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+
+```{r googlesheets, eval=FALSE }
+library(googlesheets4)
+coded_comments <- read_sheet("https://docs.google.com/spreadsheets/d/1HBjG32qWVdf9YxfGPEJhNmSw65Z9XzPhHdDbLnc3mYc/edit?usp=sharing")
+1
+1
+
+coded_comments %<>% mutate(agency = id %>% str_remove("-.*"))
+
+save(coded_comments, file = here::here("data", "coded_comments.Rdata") )
+```
+
+<!-- An R chunk to load data -->
+```{r data}
+# load saved google sheets 
+load(here::here("data", "coded_comments.Rdata"))
+
+load(here::here("data", "members.Rdata"))
+
+# USE GOOD NAMES, not d1, d2, ect.
+d1 <- coded_comments
+
+d3 <- readxl::read_xlsx(path = "data/federal_agencies_clean.xlsx")
+
+# load("/Users/samihabhushan/Downloads/members (1).Rdata")
+```
+
+```{r real_data, eval=FALSE }
+#assigning members to opposing or deviating 
+#year comes from comments datasheet and party_name comes from members ds
+for (member in members){ 
+  if (congress_data["Year"] < 2016 & members["party_name"] == "Republican Party"){
+    party_affiliation == 0
+  }if (congress_data["Year"] > 2016 & members["party_name"] == "Republican Party"){
+    party_affiliation == 1
+  } else {
+    party_affiliation == 1
+  }
+}
+```
+
+
+
+# Research Questions
+
+Does variation in financial agencies' independence affect congressional success in rulemaking?
+
+How does variation in the number of congressional coalitions affect congressional success in financial agency rulemaking?
+
+Does either conformity or deviation from the party of the President affect congressional success?
+
+Do members of Congress increasingly utilize partisan rhetoric over time to influence success within financial agency rulemaking?
+ - Does variation in partisan rhetoric affect congressional success?
+
+#Abstract 
+(125 words)
+The outcomes to federal rulemaking proposals in response to congressional lobbying is integral towards understanding how government institutions work. However, federal agencies vary in level of independence, as measured by how responsive they are to public demands. Previous studies have shown that federal agency rulemaking, especially within the financial divisions, has become more independent over time, with agencies becoming less responsive to public comments. Using data from prior studies conducted by Dr. Jennifer Selin and Dr. Devin Judge-Lord, I seek to study whether this pattern can be seen within the congressional sphere — i.e. if financial federal agencies are responsive to congressmembers’ demands. I also attempt to see if there may be any change of influence for those within the same or opposing party of the President.
+
+
+# Methods
+I will gather data from 40 rules issued by financial agencies, including but not limited
+to the Consumer Financial Protection Bureau, the Treasury Department, and the Office of
+the Comptroller of the Currency. I focus on public comments issued by members of
+Congress and focus on whether their demands were ultimately fulfilled in the final rule.
+The research design additionally combines data from a previous study conducted by
+Jennifer L. Selin, who determined an estimate of the level of structural independence for
+several agencies during the Obama administration. My study will also include rules during
+the subsequent Trump administration, wherein the Senate majority switched to the
+Republican party. I will compare and contrast rules from both eras to determine if
+influence from political parties have grown over time, including determining if there is an
+increased presence of politicians commenting on policies.
+I will also use textual analysis in addition to the hand coding to see if elected officials
+use more partisan rhetoric over time. In this study, “partisan rhetoric” refers to an
+individual making positive assertions about their own party or negative assertions about
+the opposing party. I will also examine whether the demands of elected officials that are
+the same party as the President are increasingly met over those of the opposing party.
+
+## Participants
+
+## Material
+
+## Procedure
+
+## Data analysis
+
+
+
+
+# Results
+
+
+
+### Simulated Data
+
+Does either conformity or deviation from the party of the President affect congressional success?
+
+
+
+One measure of agency independence may be examined by studying the effects of congressmember's party affiliation and whether it conforms with the President's party affiliation.
+
+We have the following data for 10 congressmembers:
+
+`Success`: whether agencies fullfilled Congressmembers' demands, measured between -2 and 2.
+
+`Party`: "1" for if the party is the same for the congressmember and the President and "0" if the party is different between the congressmember and the President.
+
+`Independence`: The estimates of agency independence, derived from Selin's data.
+
+`Coalitions` : sizes of coalitions that the congressmember is affiliated with.
+
+
+Table \@ref(tab:data-sim) shows ten rows of simulated data.
+
+```{r data-sim}
+library(tidyverse)
+library(tibble)
+library(msm)
+library(kableExtra)
+congressional_success <- sample(x = c(-2, -1, 0, 1, 2), 1000, prob = c(0.1, 0.3, .1, 0.4, 0.1), replace = T)
+d = tibble(rule_id = c(1:1000, rep(1001:1500, 2)),
+           congress_id = sample(1:2000),
+           coalitions  = c(rep(1, 1000), rep(2, 1000)),
+           congressional_success = c(congressional_success, sort(congressional_success)), 
+           coalition_size = rtnorm(1000, mean = 5, sd= 10, lower = 1) %>% rep(2) %>% round(), 
+           party_affiliation = sample(x = c(0,1), 2000, replace = T, prob = c(0.7, .3)),
+           independence = sample(x = c(4.1,1.643,0.174,0.218,2.269), 2000, replace = T),
+           comments= c(rtnorm(1000, mean = 10000, sd = 100000, lower = 100), rep(1, 1000)) %>%
+sample() %>% round() , 
+           cong_support = c(rtnorm(1000, mean = 1, sd = 5, lower = 0), rep(0, 1000)) %>% sample() %>% round() )             
+d %>% sample_n(10) %>% dplyr::select(rule_id, congress_id, everything())
+```
+
+# Hypotheses
+
+H1: Members of Congress of the same party as the President have their demands fullfilled more often than congressmembers that are of a different politcal party. That is, the relationship between congressional success and agency independence differs by party affiliation. 
+
+H0: There is no difference in congressional success for members of Congress of the same of differing party of the President. That is, the relationship between congressional and agency independence does not differ by party affiliation. 
+
+# Linear regression
+
+The dependent variable is congressional success. For congressmember $i$, let congressional success be $y_i$ in the model $y_i = \beta_0 + ... + \epsilon_i$. $\beta_0$ is the predicted salary, $\hat{y}$, when all other variables in the model are 0.
+
+
+---
+
+## A model
+
+Does the model, $y_i = \beta_0 + \beta_1*party_i + \epsilon_i$, test the relationship of interest? 
+```{r congress_model, fig.height = 1}
+model <- lm(congressional_success ~ party_affiliation, data = d) 
+m <- model %>% 
+  tidy(conf.int = TRUE) 
+m
+ggplot(m %>% filter(term != "(Intercept)")) + 
+  aes(x = term,
+      y = estimate, 
+      ymin = conf.low, 
+      ymax = conf.high) + 
+  geom_pointrange() + 
+  geom_hline(yintercept = 0, color = "grey") + 
+  coord_flip() + 
+  labs(x="", y="OLS Estimate")
+```
+
+```{r summary}
+# scatterplots
+ggplot(d) + 
+  aes(x = party_affiliation, y = congressional_success) + 
+  geom_point(aes(alpha = coalition_size)) 
+p <- ggplot(d) + 
+  aes(x = party_affiliation, y = congressional_success) + 
+  geom_point(aes(alpha = coalition_size))
+p
+```
+
+### data plot
+```{r congress_plot}
+# illustrating with yhat formula; more easily done with augment()
+b0 <- m$estimate[1]
+b1 <- m$estimate[2]
+p +
+  geom_line(aes(color = "Deviation", # yhat for opposition party
+                y = b0 + b1*1) ) + 
+  geom_line(aes(color = "Conformity", # yhat for same party
+                y = b0 + b1*0) )  +
+  geom_ribbon(aes(ymax = b0 + b1*1, 
+                  ymin = b0 + b1*0), alpha = .1, color = NA)
+```
+
+t-test (compare model output to simple t-test of difference in mean `congressional success` by `party`).
+```{r}
+# tidy model output object
+m 
+# t-test
+t.test(congressional_success ~ party_affiliation, data = d) %>% tidy()
+```
+
+```{r hist-coalitions-sim, fig.width=2, fig.height=2,  out.width = "30%"}
+ggplot(d, aes(x = congressional_success)) + geom_histogram()+ labs(x = "Congressional Success")
+ggplot(d, aes(x = independence)) + geom_histogram()+ labs(x = "Independence")
+ggplot(d, aes(x = coalition_size)) + geom_histogram()+ labs(x = "Coalition size")
+```
+
+
+### Multiple linear regression
+$y_i = \beta_0 + \beta_1*party_i + \beta_2*independence_i + \epsilon_i$
+```{r}
+model_1 <- lm(congressional_success ~ independence + party_affiliation, data = d)
+      augment()
+summary(model_1)
+m1 <- model_1 %>% 
+  tidy(conf.int = TRUE) 
+m1
+ggplot(m1 %>% filter(term != "(Intercept)")) + 
+  aes(x = term,
+      y = estimate, 
+      ymin = conf.low, 
+      ymax = conf.high) + 
+  geom_pointrange() + 
+  geom_hline(yintercept = 0, color = "grey") + 
+  coord_flip() + 
+  labs(x="", y="OLS Estimate")
+```
+
+### Let's plot the results against our data!
+```{r congress_party_plot}
+# illustrating with yhat formula; more easily done with augment()
+b0 <- m1$estimate[1]
+b1 <- m1$estimate[2]
+b2 <- m1$estimate[3]
+p +
+  geom_line(aes(color = "Deviation", # yhat for opposition party
+                y = b0 + b1*1 + b2*party_affiliation) ) + 
+  geom_line(aes(color = "Conformity", # yhat for same party
+                y = b0 + b1*0 + b2*party_affiliation) )  +
+  geom_ribbon(aes(ymax = b0 + b1*1+ b2*party_affiliation, 
+                  ymin = b0 + b1*0+ b2*party_affiliation), alpha = .1, color = NA)
+```
+
+### Fit 
+Let's also plot the residuals. Aside from interpretation, we want to know where our model is a better or worse fit with the data, especially if residuals seem to vary systematically over the range of our data.
+
+`augment` computes tidy residuals, among other cool things.
+```{r congress_residuals}
+m1 <- augment(model_1)
+p + 
+  geom_line(aes(y = m1$.fitted)) + # with .fitted from augment()
+  geom_point(aes(y = m1$.fitted), shape = 1, alpha = .2) + # with .fitted from augment()
+  geom_segment(aes(xend = independence, yend = m1$.fitted ), alpha = .2, size = 2)
+ggplot(m1) +
+  aes(y = .resid, x = party_affiliation) + 
+  geom_point(aes(color = party_affiliation)) + 
+  scale_color_viridis_c() + 
+  ## to show how risiduals are the distance between an 
+  ## observation and the regression line:
+  geom_hline(yintercept = 0, color = "dark grey") +
+  geom_text(x= mean(m1$independence), y = 0, 
+            label = "Regression line") +
+  geom_col(aes(fill = party_affiliation), alpha = .2, position ="identity") +
+  ## + labels:
+  labs(title = "Residuals (Observed - Predicted Independence)",
+       y = "Residuals") 
+```
+
+### AIC and BIC
+
+
+```{r}
+glance(model_1)
+```
+
+### Simulated Results
+
+Unsurprisingly this model yields no significant results (Figure \@ref(fig:model-success-plot-sim), Table \@ref(tab:mediation-sim)). With lobbying success as the dependent variable, the coefficient on the main variable of interest would be interpreted as a $\beta_{logmasscomments}$ increase in the five-point influence scale of lobbying success for each one-unit increase in the logged number of comments.
+
+
+
+
+
+
+# Discussion
+
+
+\newpage
+
+# References
+
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+<div id="refs" custom-style="Bibliography"></div>
+\endgroup
