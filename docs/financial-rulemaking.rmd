@@ -1,55 +1,43 @@
 ---
 title: "Have federal agencies become more partisan over time?"
-# author:
-# - name: Samiha Bhushan
-#   affiliation: '1'
-#   corresponding: yes
-#   address: Postal address
-#   email: my@email.com
-# shorttitle: Do members of Congress have an increasing level of influence on the outcome
-#   of federal agency financial rulemaking?
+author:
+- name: Samiha Bhushan
+  affiliation: '1'
+  corresponding: yes
+  address: Postal address
+  email: my@email.com
+shorttitle: Do members of Congress have an increasing level of influence on the outcome
+  of federal agency financial rulemaking?
 output:
-    html_document:
-      highlight: zenburn
-      toc: true
-      toc_float: true
-      code_folding: hide
-#     df_print: paged
-# authornote: |
-#   Add complete departmental affiliations for each author here. Each new line herein must be indented, like this line.
-#   Enter author note here.
-# abstract: |
-#   O
-# keywords: keywords
-# wordcount: X
-# bibliography: r-references.bib
-# floatsintext: no
-# figurelist: no
-# tablelist: no
-# footnotelist: no
-# linenumbers: yes
-# mask: no
-# draft: no
-# documentclass: apa6
-# classoption: man
-# affiliation:
-# - id: '1'
-#   institution: University of Wisconsin-Madison
+  html_document:
+    df_print: paged
+authornote: |
+  Add complete departmental affiliations for each author here. Each new line herein must be indented, like this line.
+  Enter author note here.
+abstract: |
+  O
+keywords: keywords
+wordcount: X
+bibliography: r-references.bib
+floatsintext: no
+figurelist: no
+tablelist: no
+footnotelist: no
+linenumbers: yes
+mask: no
+draft: no
+documentclass: apa6
+classoption: man
+affiliation:
+- id: '1'
+  institution: University of Wisconsin-Madison
 ---
 
 ```{r setup, include = FALSE}
-# library("papaja")
-# r_refs("r-references.bib")
-## Sets defaults for R chunks
-knitr::opts_chunk$set(echo = TRUE, # echo = TRUE means that your code will show
-                      warning=FALSE,
-                      message=FALSE,
-                      fig.path='figs/', ## where to save figures
-                      fig.height = 3,
-                      fig.width = 4,
-                      fig.align = 'center')
-## Add any R packages you require. 
-## Here are some we will use in 811:
+library("papaja")
+r_refs("r-references.bib")
+# Sets defaults for R chunks
+knitr::opts_chunk$set(echo = TRUE)
 requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
               "broom",
               "haven", 
@@ -60,7 +48,10 @@ requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
               "viridisLite",
               "truncnorm",
               "ggridges",
-              "here")
+              "here",
+              "fuzzyjoin",
+              "editData",
+              "readxl")
 ## Install any you don't have
 to_install <- c(!requires %in% rownames(installed.packages()))
 install.packages(c(requires[to_install], "NA"), repos = "https://cloud.r-project.org/" )
@@ -71,6 +62,7 @@ library(haven)
 library(magrittr)
 library(margins)
 library(here)
+library(readxl)
 library(ggplot2); theme_set(theme_bw()) # global plot theme
 ## Colorblind and greyscale print-friendly scales
 library(viridisLite)
@@ -91,49 +83,8 @@ knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
 ```
 
 
-```{r googlesheets, eval=FALSE }
-library(googlesheets4)
-coded_comments <- read_sheet("https://docs.google.com/spreadsheets/d/1HBjG32qWVdf9YxfGPEJhNmSw65Z9XzPhHdDbLnc3mYc/edit?usp=sharing")
-1
-1
 
-coded_comments %<>% mutate(agency = id %>% str_remove("-.*"))
-
-save(coded_comments, file = here::here("data", "coded_comments.Rdata") )
-```
-
-<!-- An R chunk to load data -->
-```{r data}
-# load saved google sheets 
-load(here::here("data", "coded_comments.Rdata"))
-
-load(here::here("data", "members.Rdata"))
-
-# USE GOOD NAMES, not d1, d2, ect.
-d1 <- coded_comments
-
-d3 <- readxl::read_xlsx(path = "data/federal_agencies_clean.xlsx")
-
-# load("/Users/samihabhushan/Downloads/members (1).Rdata")
-```
-
-```{r real_data, eval=FALSE }
-#assigning members to opposing or deviating 
-#year comes from comments datasheet and party_name comes from members ds
-for (member in members){ 
-  if (congress_data["Year"] < 2016 & members["party_name"] == "Republican Party"){
-    party_affiliation == 0
-  }if (congress_data["Year"] > 2016 & members["party_name"] == "Republican Party"){
-    party_affiliation == 1
-  } else {
-    party_affiliation == 1
-  }
-}
-```
-
-
-
-# Research Questions
+#Research Questions
 
 Does variation in financial agencies' independence affect congressional success in rulemaking?
 
@@ -174,8 +125,7 @@ the same party as the President are increasingly met over those of the opposing 
 ## Procedure
 
 ## Data analysis
-
-
+We used `r cite_r("r-references.bib")` for all our analyses.
 
 
 # Results
@@ -366,6 +316,43 @@ glance(model_1)
 Unsurprisingly this model yields no significant results (Figure \@ref(fig:model-success-plot-sim), Table \@ref(tab:mediation-sim)). With lobbying success as the dependent variable, the coefficient on the main variable of interest would be interpreted as a $\beta_{logmasscomments}$ increase in the five-point influence scale of lobbying success for each one-unit increase in the logged number of comments.
 
 
+```{r new_data}
+library(googlesheets4)
+comments <- read_sheet("https://docs.google.com/spreadsheets/d/1HBjG32qWVdf9YxfGPEJhNmSw65Z9XzPhHdDbLnc3mYc/edit?usp=sharing")
+load("/Users/samihabhushan/Documents/financial-rulemaking/data/members.Rdata")
+agency_data <- read_excel("/Users/samihabhushan/Documents/financial-rulemaking/data/federal_agencies_list.xlsx")
+```
+
+
+```{r president_scores}
+members %<>% 
+  mutate(nominate_pres = case_when(
+  congress < 111 ~ 0.693,
+  congress >111 & congress <115 ~ -0.358,
+  congress > 115 & congress <117 ~ 0.403,
+  congress > 117 ~ -0.320))
+
+members %<>% mutate(
+nominate_diff = nominate.dim1-nominate_pres)
+
+comments %<>% full_join(members, by = "icpsr", copy = FALSE)
+comments %<>% mutate(agency = str_remove(docket_id, "-.*") )
+comments %<>% full_join(agency_data, by = c("agency"="Acronym"))
+```
+## Real data model
+
+```{r new_summary}
+# scatterplots
+ggplot(comments) + 
+  aes(x = nominate_diff, y = success) + 
+  geom_point(aes(alpha = congress.x)) 
+# add color by Gender, and save plot as p for future use
+p <- ggplot(comments) + 
+  aes(x = nominate_diff, y = success, color = party_name) + 
+  geom_point(aes(alpha = congress.x)) + scale_color_discrete()
+p
+
+```
 
 
 
