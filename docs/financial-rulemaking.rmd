@@ -10,9 +10,8 @@ shorttitle: Do members of Congress have an increasing level of influence on the 
   of federal agency financial rulemaking?
 output:
   html_document:
-    df_print: paged
-    code_folding: hide
     toc: true
+    code_folding: hide
 authornote: |
   Add complete departmental affiliations for each author here. Each new line herein must be indented, like this line.
   Enter author note here.
@@ -416,7 +415,7 @@ ggplot(m1 %>% filter(term != "(Intercept)")) +
 ### AIC and BIC
 
 
-```{r, eval= FALSE}
+```{r, eval = FALSE}
 
 model_2 <- lm(congressional_success ~ nominate_diff, data = comments)
 
