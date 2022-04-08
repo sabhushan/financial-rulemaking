@@ -209,10 +209,10 @@ ggplot(m %>% filter(term != "(Intercept)")) +
 # scatterplots
 ggplot(d) + 
   aes(x = party_affiliation, y = congressional_success) + 
-  geom_point(aes(alpha = coalition_size)) 
+  geom_jitter(aes(alpha = coalition_size)) 
 p <- ggplot(d) + 
   aes(x = party_affiliation, y = congressional_success) + 
-  geom_point(aes(alpha = coalition_size))
+  geom_jitter(aes(alpha = coalition_size))
 p
 ```
 
@@ -338,7 +338,7 @@ nominate_diff = nominate.dim1-nominate_pres)
 
 comments %<>% full_join(members, by = "icpsr", copy = FALSE)
 comments %<>% mutate(Agency = str_remove(id.x, "-.*") )
-comments %<>% full_join(agency_data, by = "Agency", copy = FALSE)
+comments %<>% left_join(agency_data, by = "Agency", copy = FALSE)
 ```
 ## Real data model
 
@@ -346,11 +346,11 @@ comments %<>% full_join(agency_data, by = "Agency", copy = FALSE)
 # scatterplots
 ggplot(comments) + 
   aes(x = nominate_diff, y = success) + 
-  geom_point(aes(alpha = congress.x)) 
+  geom_jitter(aes(alpha = congress.x)) 
 # add color by Gender, and save plot as p for future use
 p <- ggplot(comments) + 
   aes(x = nominate_diff, y = success, color = party_name) + 
-  geom_point(aes(alpha = congress.x)) + scale_color_discrete()
+  geom_jitter(aes(alpha = congress.x)) + scale_color_discrete()
 p
 
 ```
@@ -431,6 +431,10 @@ ggplot(d) +
 
 
 ```
+# Interpretation 
+$y_i = \beta_0 + \beta_1*nominate_diff_i + \beta_2*independence_i + \epsilon_i$
+
+$y_i = \beta_0 + \beta_1*nominate_diff_i + \beta_2*independence_i +\beta_3*independence_iXnominate_diff_1 + \epsilon_i$
 
 # Discussion
 
