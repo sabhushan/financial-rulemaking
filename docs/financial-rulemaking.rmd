@@ -11,6 +11,8 @@ shorttitle: Do members of Congress have an increasing level of influence on the 
 output:
   html_document:
     df_print: paged
+    code_folding: hide
+    toc: true
 authornote: |
   Add complete departmental affiliations for each author here. Each new line herein must be indented, like this line.
   Enter author note here.
@@ -336,7 +338,7 @@ members %<>% mutate(
 nominate_diff = nominate.dim1-nominate_pres)
 
 comments %<>% full_join(members, by = "icpsr", copy = FALSE)
-comments %<>% mutate(Agency = str_remove(docket_id, "-.*") )
+comments %<>% mutate(Agency = str_remove(id.x, "-.*") )
 comments %<>% full_join(agency_data, by = "Agency", copy = FALSE)
 ```
 ## Real data model
@@ -368,7 +370,7 @@ ggplot(m %>% filter(term != "(Intercept)")) +
   geom_hline(yintercept = 0, color = "grey") + 
   coord_flip() + 
   labs(x="", y="OLS Estimate")
-
+m$.fitted
 ```
 
 ```{r real congress_plot}
@@ -407,14 +409,28 @@ ggplot(m1 %>% filter(term != "(Intercept)")) +
   geom_hline(yintercept = 0, color = "grey") + 
   coord_flip() + 
   labs(x="", y="OLS Estimate")
+
 ```
 
 
 ### AIC and BIC
 
 
-```{r}
-glance(model_1)
+```{r, eval= FALSE}
+
+model_2 <- lm(congressional_success ~ nominate_diff, data = comments)
+
+m2 <- augment(model_2)
+
+
+ggplot(d) + 
+  aes(x =  nominate_diff, y = congressional_success) + 
+  geom_point() + scale_color_discrete() +
+  geom_line(aes(y = m2$.fitted)) + # with .fitted from augment()
+  geom_point(aes(y = m2$.fitted), shape = 1, alpha = .2) + # with .fitted from augment()
+    geom_segment(aes(xend = nominate_diff, yend = m2$.fitted ), alpha = .2, size = 2)
+
+
 ```
 
 # Discussion
