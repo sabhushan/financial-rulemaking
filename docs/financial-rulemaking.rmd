@@ -2,7 +2,7 @@
 title: "Have federal agencies become more partisan over time?"
 author:
 - name: Samiha Bhushan
-  affiliation: '1'
+  affiliation: 'University of Wisconsin-Madison'
   corresponding: yes
   address: Postal address
   email: my@email.com
@@ -11,32 +11,30 @@ shorttitle: Do members of Congress have an increasing level of influence on the 
 output:
   html_document:
     toc: true
+    toc_float: true
     code_folding: hide
 authornote: |
   Add complete departmental affiliations for each author here. Each new line herein must be indented, like this line.
   Enter author note here.
 abstract: |
   O
-keywords: keywords
-wordcount: X
+#keywords: keywords
+#wordcount: X
 bibliography: r-references.bib
-floatsintext: no
-figurelist: no
-tablelist: no
-footnotelist: no
-linenumbers: yes
-mask: no
-draft: no
-documentclass: apa6
-classoption: man
-affiliation:
-- id: '1'
-  institution: University of Wisconsin-Madison
+#floatsintext: no
+#figurelist: no
+#tablelist: no
+#footnotelist: no
+#linenumbers: yes
+#mask: no
+#draft: no
+#documentclass: apa6
+#classoption: man
 ---
 
 ```{r setup, include = FALSE}
-library("papaja")
-r_refs("r-references.bib")
+#library("papaja")
+# r_refs("r-references.bib")
 # Sets defaults for R chunks
 knitr::opts_chunk$set(echo = TRUE)
 requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
@@ -85,7 +83,7 @@ knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
 
 
 
-#Research Questions
+# Research Questions
 
 Does variation in financial agencies' independence affect congressional success in rulemaking?
 
@@ -126,7 +124,7 @@ the same party as the President are increasingly met over those of the opposing 
 ## Procedure
 
 ## Data analysis
-We used `r cite_r("r-references.bib")` for all our analyses.
+
 
 
 # Results
@@ -299,7 +297,7 @@ ggplot(m1) +
   geom_hline(yintercept = 0, color = "dark grey") +
   geom_text(x= mean(m1$independence), y = 0, 
             label = "Regression line") +
-  geom_col(aes(fill = party_affiliation), alpha = .2, position ="identity") +
+  #geom_col(aes(fill = party_affiliation), alpha = .2, position ="identity") +
   ## + labels:
   labs(title = "Residuals (Observed - Predicted Independence)",
        y = "Residuals") 
@@ -319,13 +317,18 @@ Unsurprisingly this model yields no significant results (Figure \@ref(fig:model-
 
 ```{r new_data}
 library(googlesheets4)
+
+#FIXME move this into another script updating the comment data from google sheet, so you don't need to ping google sheets every time you knit 
 comments <- read_sheet("https://docs.google.com/spreadsheets/d/1HBjG32qWVdf9YxfGPEJhNmSw65Z9XzPhHdDbLnc3mYc/edit?usp=sharing")
-load("/Users/samihabhushan/Documents/financial-rulemaking/data/members.Rdata")
-agency_data <- read_excel("/Users/samihabhushan/Documents/financial-rulemaking/data/federal_agencies_estimate.xlsx")
+
+load(here("data/members.Rdata"))
+
+agency_data <- read_excel(here("data/federal_agencies_estimate.xlsx"))
 ```
 
 
 ```{r president_scores}
+#FIXME 
 members %<>% 
   mutate(nominate_pres = case_when(
   congress < 111 ~ 0.693,
@@ -333,30 +336,60 @@ members %<>%
   congress > 115 & congress <117 ~ 0.403,
   congress > 117 ~ -0.320))
 
+# LOOK AT THIS: 
+members %>% 
+  distinct(congress, nominate_pres) %>% 
+  arrange(congress)
+
+# Make ideological distance from president variable
 members %<>% mutate(
 nominate_diff = nominate.dim1-nominate_pres)
 
-comments %<>% full_join(members, by = "icpsr", copy = FALSE)
-comments %<>% mutate(Agency = str_remove(id.x, "-.*") )
-comments %<>% left_join(agency_data, by = "Agency", copy = FALSE)
+# subset comments to those from an icpsr-matched member of Congress 
+comments1 <- comments %>% drop_na(icpsr)
+
+# select variables we want from members 
+members_selected <- members %>% select(icpsr, chamber, congress, nominate.dim1, nominate_pres, nominate_diff, party_name)
+
+comments1 %<>% left_join(members_selected) 
+
+# Create agency variable from id 
+comments1 %<>% mutate(Agency = str_remove(id, "-.*") )
+
+# Inspect agencies
+# unique(d$Agency)
+
+
+# Join in agency independence scores
+comments1 %<>% left_join(agency_data, by = "Agency", copy = FALSE)
+
+# Subset to agencies for this study
+comments2 <- comments1 %>% filter(!is.na(Estimate))
+
+# inspect agencies
+# unique(comments2$Agency)
+
+comments2 %>%
+  select(congress, bioname, icpsr, party_name, nominate.dim1, nominate_pres, nominate_diff, Agency, Estimate) 
 ```
 ## Real data model
 
 ```{r new_summary}
 # scatterplots
-ggplot(comments) + 
+ggplot(comments2) + 
   aes(x = nominate_diff, y = success) + 
-  geom_jitter(aes(alpha = congress.x)) 
+  geom_jitter(aes(alpha = congress)) 
+
 # add color by Gender, and save plot as p for future use
-p <- ggplot(comments) + 
+p <- ggplot(comments2) + 
   aes(x = nominate_diff, y = success, color = party_name) + 
-  geom_jitter(aes(alpha = congress.x)) + scale_color_discrete()
+  geom_jitter(aes(alpha = congress)) + scale_color_discrete()
 p
 
 ```
 
 ```{r real congress_ols_estimate}
-model <- lm(success ~ nominate_diff, data = comments) 
+model <- lm(success ~ nominate_diff, data = comments2) 
 m <- model %>% 
   tidy(conf.int = TRUE) 
 m
@@ -386,14 +419,14 @@ p +
 ```
 
 ```{r hist-coalitions, fig.width=2, fig.height=2,  out.width = "30%"}
-ggplot(comments, aes(x = success)) + geom_histogram()+ labs(x = "Congressional Success")
-ggplot(comments, aes(x = Estimate)) + geom_histogram()+ labs(x = "Independence")
-ggplot(comments, aes(x = nominate_diff)) + geom_histogram()+ labs(x = "Diff in nominate scores")
+ggplot(comments2, aes(x = success)) + geom_histogram()+ labs(x = "Congressional Success")
+ggplot(comments2, aes(x = Estimate)) + geom_histogram()+ labs(x = "Independence")
+ggplot(comments2, aes(x = nominate_diff)) + geom_histogram()+ labs(x = "Diff in nominate scores")
 ```
 ### Multiple linear regression
 $y_i = \beta_0 + \beta_1*nominate_i + \beta_2*independence_i + \epsilon_i$
 ```{r}
-model_1 <- lm(success ~ nominate_diff + Estimate, data = comments)
+model_1 <- lm(success ~ nominate_diff + Estimate, data = comments2)
       augment()
 summary(model_1)
 m1 <- model_1 %>% 
@@ -417,7 +450,7 @@ ggplot(m1 %>% filter(term != "(Intercept)")) +
 
 ```{r, eval = FALSE}
 
-model_2 <- lm(congressional_success ~ nominate_diff, data = comments)
+model_2 <- lm(congressional_success ~ nominate_diff, data = comments2)
 
 m2 <- augment(model_2)
 
@@ -442,7 +475,7 @@ Wendy E. Wagner describes a salient issue within the rulemaking process, wherein
 
 A federal agencies levels of independence does not end up being the biggest influence on whether a demand is fulfilled, rather its a failure for interest groups to self-process information they give agencies, i.e. filter failure. Even agencies with a high level of independence and have a commited to openness and transperency will not be able to avoid the issue of information capture. Regulatory solutions to a diverse amount of interest groups is no longer possible, given that much of the information is buried within mountains of information. Wagner continues, "once excessive information begins to gum up the works, simple fixes are no longer possible. Radical institutional overhaul becomes the only viable remedy." The idea of information theory underscores the idea of ensuring communications to large governing bodies such as regulatory agencies is efficient and effective encapsulates the issue for all interested parties on a given rule. 
 
-The financial rulemaking process is often opaque and difficult to understand, which exacerbates the issue. Well-funded groups, paired with congressional pressure, imploy extremely technical language as well overly detailed arguments for unrelated aspects of the rule, therefore gumming up the rulemaking process. Wagner claims "To preserve issues for litigation, affected parties are thus best-advised to provide comments that are specific, detailed, and well documented. This seemingly reasonable requirement for specificity again encourages interested parties to provide too much documentation, too many specifics, and too much detail, rather than too little." Given there are increasing information costs for overly technical comments, this becomes the basis of well-funded interest groups' comment issuing process. Further, increasing amounts of direct partipation with the federal agencies may cause the federal agencies to increasingly rely on the experts within the interest groups, rather than retaining their own experts and objective opinions.  
+The financial rulemaking process is often opaque and difficult to understand, which exacerbates the issue. Well-funded groups, paired with congressional pressure, imploy extremely technical language as well overly detailed arguments for unrelated aspects of the rule, therefore gumming up the rulemaking process. Wagner claims "To preserve issues for litigation, affected parties are thus best-advised to provide comments2 that are specific, detailed, and well documented. This seemingly reasonable requirement for specificity again encourages interested parties to provide too much documentation, too many specifics, and too much detail, rather than too little." Given there are increasing information costs for overly technical comments, this becomes the basis of well-funded interest groups' comment issuing process. Further, increasing amounts of direct partipation with the federal agencies may cause the federal agencies to increasingly rely on the experts within the interest groups, rather than retaining their own experts and objective opinions.  
 
 Wagner provides several means of avoiding the information capture process, including an increase the civic participation of the agency staff, as effective agency leadership and an awareness of the information capture process is powerful towards maintaining objectivity. However, she postulates that it is not enough, as agency staff "will face an uphill legal battle to surmount all of the one-sided pressures." Moreover, hiring of agency staff must be trasparent and enable only those without a strong favoring for a certain interest group, which is a difficult and nebulous statement. Wagner also suggests providing the public with "a number of legislative and executive innovations, such as cost-benefit analysis" in order to allow the information to be more digestible for a layperson as well as an opportunity to focus on different implications of the rule. 
 
