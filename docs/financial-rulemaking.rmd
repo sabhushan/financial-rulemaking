@@ -1,55 +1,44 @@
 ---
 title: "Have federal agencies become more partisan over time?"
-# author:
-# - name: Samiha Bhushan
-#   affiliation: '1'
-#   corresponding: yes
-#   address: Postal address
-#   email: my@email.com
-# shorttitle: Do members of Congress have an increasing level of influence on the outcome
-#   of federal agency financial rulemaking?
+author:
+- name: Samiha Bhushan
+  affiliation: '1'
+  corresponding: yes
+  address: Postal address
+  email: my@email.com
+shorttitle: Do members of Congress have an increasing level of influence on the outcome
+  of federal agency financial rulemaking?
 output:
-    html_document:
-      highlight: zenburn
-      toc: true
-      toc_float: true
-      code_folding: hide
-#     df_print: paged
-# authornote: |
-#   Add complete departmental affiliations for each author here. Each new line herein must be indented, like this line.
-#   Enter author note here.
-# abstract: |
-#   O
-# keywords: keywords
-# wordcount: X
-# bibliography: r-references.bib
-# floatsintext: no
-# figurelist: no
-# tablelist: no
-# footnotelist: no
-# linenumbers: yes
-# mask: no
-# draft: no
-# documentclass: apa6
-# classoption: man
-# affiliation:
-# - id: '1'
-#   institution: University of Wisconsin-Madison
+  html_document:
+    toc: true
+    code_folding: hide
+authornote: |
+  Add complete departmental affiliations for each author here. Each new line herein must be indented, like this line.
+  Enter author note here.
+abstract: |
+  O
+keywords: keywords
+wordcount: X
+bibliography: r-references.bib
+floatsintext: no
+figurelist: no
+tablelist: no
+footnotelist: no
+linenumbers: yes
+mask: no
+draft: no
+documentclass: apa6
+classoption: man
+affiliation:
+- id: '1'
+  institution: University of Wisconsin-Madison
 ---
 
 ```{r setup, include = FALSE}
-# library("papaja")
-# r_refs("r-references.bib")
-## Sets defaults for R chunks
-knitr::opts_chunk$set(echo = TRUE, # echo = TRUE means that your code will show
-                      warning=FALSE,
-                      message=FALSE,
-                      fig.path='figs/', ## where to save figures
-                      fig.height = 3,
-                      fig.width = 4,
-                      fig.align = 'center')
-## Add any R packages you require. 
-## Here are some we will use in 811:
+library("papaja")
+r_refs("r-references.bib")
+# Sets defaults for R chunks
+knitr::opts_chunk$set(echo = TRUE)
 requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
               "broom",
               "haven", 
@@ -60,7 +49,10 @@ requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
               "viridisLite",
               "truncnorm",
               "ggridges",
-              "here")
+              "here",
+              "fuzzyjoin",
+              "editData",
+              "readxl")
 ## Install any you don't have
 to_install <- c(!requires %in% rownames(installed.packages()))
 install.packages(c(requires[to_install], "NA"), repos = "https://cloud.r-project.org/" )
@@ -71,6 +63,7 @@ library(haven)
 library(magrittr)
 library(margins)
 library(here)
+library(readxl)
 library(ggplot2); theme_set(theme_bw()) # global plot theme
 ## Colorblind and greyscale print-friendly scales
 library(viridisLite)
@@ -91,49 +84,8 @@ knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
 ```
 
 
-```{r googlesheets, eval=FALSE }
-library(googlesheets4)
-coded_comments <- read_sheet("https://docs.google.com/spreadsheets/d/1HBjG32qWVdf9YxfGPEJhNmSw65Z9XzPhHdDbLnc3mYc/edit?usp=sharing")
-1
-1
 
-coded_comments %<>% mutate(agency = id %>% str_remove("-.*"))
-
-save(coded_comments, file = here::here("data", "coded_comments.Rdata") )
-```
-
-<!-- An R chunk to load data -->
-```{r data}
-# load saved google sheets 
-load(here::here("data", "coded_comments.Rdata"))
-
-load(here::here("data", "members.Rdata"))
-
-# USE GOOD NAMES, not d1, d2, ect.
-d1 <- coded_comments
-
-d3 <- readxl::read_xlsx(path = "data/federal_agencies_clean.xlsx")
-
-# load("/Users/samihabhushan/Downloads/members (1).Rdata")
-```
-
-```{r real_data, eval=FALSE }
-#assigning members to opposing or deviating 
-#year comes from comments datasheet and party_name comes from members ds
-for (member in members){ 
-  if (congress_data["Year"] < 2016 & members["party_name"] == "Republican Party"){
-    party_affiliation == 0
-  }if (congress_data["Year"] > 2016 & members["party_name"] == "Republican Party"){
-    party_affiliation == 1
-  } else {
-    party_affiliation == 1
-  }
-}
-```
-
-
-
-# Research Questions
+#Research Questions
 
 Does variation in financial agencies' independence affect congressional success in rulemaking?
 
@@ -174,8 +126,7 @@ the same party as the President are increasingly met over those of the opposing 
 ## Procedure
 
 ## Data analysis
-
-
+We used `r cite_r("r-references.bib")` for all our analyses.
 
 
 # Results
@@ -258,10 +209,10 @@ ggplot(m %>% filter(term != "(Intercept)")) +
 # scatterplots
 ggplot(d) + 
   aes(x = party_affiliation, y = congressional_success) + 
-  geom_point(aes(alpha = coalition_size)) 
+  geom_jitter(aes(alpha = coalition_size)) 
 p <- ggplot(d) + 
   aes(x = party_affiliation, y = congressional_success) + 
-  geom_point(aes(alpha = coalition_size))
+  geom_jitter(aes(alpha = coalition_size))
 p
 ```
 
@@ -366,11 +317,136 @@ glance(model_1)
 Unsurprisingly this model yields no significant results (Figure \@ref(fig:model-success-plot-sim), Table \@ref(tab:mediation-sim)). With lobbying success as the dependent variable, the coefficient on the main variable of interest would be interpreted as a $\beta_{logmasscomments}$ increase in the five-point influence scale of lobbying success for each one-unit increase in the logged number of comments.
 
 
+```{r new_data}
+library(googlesheets4)
+comments <- read_sheet("https://docs.google.com/spreadsheets/d/1HBjG32qWVdf9YxfGPEJhNmSw65Z9XzPhHdDbLnc3mYc/edit?usp=sharing")
+load("/Users/samihabhushan/Documents/financial-rulemaking/data/members.Rdata")
+agency_data <- read_excel("/Users/samihabhushan/Documents/financial-rulemaking/data/federal_agencies_estimate.xlsx")
+```
 
 
+```{r president_scores}
+members %<>% 
+  mutate(nominate_pres = case_when(
+  congress < 111 ~ 0.693,
+  congress >111 & congress <115 ~ -0.358,
+  congress > 115 & congress <117 ~ 0.403,
+  congress > 117 ~ -0.320))
 
+members %<>% mutate(
+nominate_diff = nominate.dim1-nominate_pres)
+
+comments %<>% full_join(members, by = "icpsr", copy = FALSE)
+comments %<>% mutate(Agency = str_remove(id.x, "-.*") )
+comments %<>% left_join(agency_data, by = "Agency", copy = FALSE)
+```
+## Real data model
+
+```{r new_summary}
+# scatterplots
+ggplot(comments) + 
+  aes(x = nominate_diff, y = success) + 
+  geom_jitter(aes(alpha = congress.x)) 
+# add color by Gender, and save plot as p for future use
+p <- ggplot(comments) + 
+  aes(x = nominate_diff, y = success, color = party_name) + 
+  geom_jitter(aes(alpha = congress.x)) + scale_color_discrete()
+p
+
+```
+
+```{r real congress_ols_estimate}
+model <- lm(success ~ nominate_diff, data = comments) 
+m <- model %>% 
+  tidy(conf.int = TRUE) 
+m
+ggplot(m %>% filter(term != "(Intercept)")) + 
+  aes(x = term,
+      y = estimate, 
+      ymin = conf.low, 
+      ymax = conf.high) + 
+  geom_pointrange() + 
+  geom_hline(yintercept = 0, color = "grey") + 
+  coord_flip() + 
+  labs(x="", y="OLS Estimate")
+m$.fitted
+```
+
+```{r real congress_plot}
+# illustrating with yhat formula; more easily done with augment()
+b0 <- m$estimate[1]
+b1 <- m$estimate[2]
+p +
+  geom_line(aes(
+                y = b0 + b1*1) ) + 
+  geom_line(aes(
+                y = b0 + b1*0) )  +
+  geom_ribbon(aes(ymax = b0 + b1*1, 
+                  ymin = b0 + b1*0), alpha = .1, color = NA)
+```
+
+```{r hist-coalitions, fig.width=2, fig.height=2,  out.width = "30%"}
+ggplot(comments, aes(x = success)) + geom_histogram()+ labs(x = "Congressional Success")
+ggplot(comments, aes(x = Estimate)) + geom_histogram()+ labs(x = "Independence")
+ggplot(comments, aes(x = nominate_diff)) + geom_histogram()+ labs(x = "Diff in nominate scores")
+```
+### Multiple linear regression
+$y_i = \beta_0 + \beta_1*nominate_i + \beta_2*independence_i + \epsilon_i$
+```{r}
+model_1 <- lm(success ~ nominate_diff + Estimate, data = comments)
+      augment()
+summary(model_1)
+m1 <- model_1 %>% 
+  tidy(conf.int = TRUE) 
+m1
+ggplot(m1 %>% filter(term != "(Intercept)")) + 
+  aes(x = term,
+      y = estimate, 
+      ymin = conf.low, 
+      ymax = conf.high) + 
+  geom_pointrange() + 
+  geom_hline(yintercept = 0, color = "grey") + 
+  coord_flip() + 
+  labs(x="", y="OLS Estimate")
+
+```
+
+
+### AIC and BIC
+
+
+```{r, eval = FALSE}
+
+model_2 <- lm(congressional_success ~ nominate_diff, data = comments)
+
+m2 <- augment(model_2)
+
+
+ggplot(d) + 
+  aes(x =  nominate_diff, y = congressional_success) + 
+  geom_point() + scale_color_discrete() +
+  geom_line(aes(y = m2$.fitted)) + # with .fitted from augment()
+  geom_point(aes(y = m2$.fitted), shape = 1, alpha = .2) + # with .fitted from augment()
+    geom_segment(aes(xend = nominate_diff, yend = m2$.fitted ), alpha = .2, size = 2)
+
+
+```
+# Interpretation 
+$y_i = \beta_0 + \beta_1*nominate_diff_i + \beta_2*independence_i + \epsilon_i$
+
+$y_i = \beta_0 + \beta_1*nominate_diff_i + \beta_2*independence_i +\beta_3*independence_iXnominate_diff_1 + \epsilon_i$
 
 # Discussion
+
+Wendy E. Wagner describes a salient issue within the rulemaking process, wherein well-funded interest groups attempt to overwhelm the decision making process in a regulatory context. She states "information capture refers to the excessive use of information and related information costs as a means of gaining control over regulatory decision-making in informal rulemakings." In her study, she describes excessive use of telephone calls, emails, memorandas, and petitions of appeal to bombard overstretched agency staff, and therefore forces them to disregard their own expert opinions on the rule, as well as an inability to properly process other sides of the issue. As congresspeople are often considered to be a part of well-funded interest groups, especially taking into consideration that many congresspeople jointly write letters to petition for or against an issue. As such, this may skew the overall success of the Congressmembers' demands. Even if congressmembers do not employ information capture to influence the success of their demands, they may be associated with the interest groups that do. It is important to create this distinction as the results are dependant on how rulemaking agencies consider congressmembers' asks and their own levels of federal independence, rather than the tactics used by an interest group.
+
+A federal agencies levels of independence does not end up being the biggest influence on whether a demand is fulfilled, rather its a failure for interest groups to self-process information they give agencies, i.e. filter failure. Even agencies with a high level of independence and have a commited to openness and transperency will not be able to avoid the issue of information capture. Regulatory solutions to a diverse amount of interest groups is no longer possible, given that much of the information is buried within mountains of information. Wagner continues, "once excessive information begins to gum up the works, simple fixes are no longer possible. Radical institutional overhaul becomes the only viable remedy." The idea of information theory underscores the idea of ensuring communications to large governing bodies such as regulatory agencies is efficient and effective encapsulates the issue for all interested parties on a given rule. 
+
+The financial rulemaking process is often opaque and difficult to understand, which exacerbates the issue. Well-funded groups, paired with congressional pressure, imploy extremely technical language as well overly detailed arguments for unrelated aspects of the rule, therefore gumming up the rulemaking process. Wagner claims "To preserve issues for litigation, affected parties are thus best-advised to provide comments that are specific, detailed, and well documented. This seemingly reasonable requirement for specificity again encourages interested parties to provide too much documentation, too many specifics, and too much detail, rather than too little." Given there are increasing information costs for overly technical comments, this becomes the basis of well-funded interest groups' comment issuing process. Further, increasing amounts of direct partipation with the federal agencies may cause the federal agencies to increasingly rely on the experts within the interest groups, rather than retaining their own experts and objective opinions.  
+
+Wagner provides several means of avoiding the information capture process, including an increase the civic participation of the agency staff, as effective agency leadership and an awareness of the information capture process is powerful towards maintaining objectivity. However, she postulates that it is not enough, as agency staff "will face an uphill legal battle to surmount all of the one-sided pressures." Moreover, hiring of agency staff must be trasparent and enable only those without a strong favoring for a certain interest group, which is a difficult and nebulous statement. Wagner also suggests providing the public with "a number of legislative and executive innovations, such as cost-benefit analysis" in order to allow the information to be more digestible for a layperson as well as an opportunity to focus on different implications of the rule. 
+
+Interestingly, Wagner also provides a mechnaism that allows congressmembers' to alleviate, rather than contribute, to the issue. While civic-minded agency staff is poweful, civic-minded beaurocrats within Congress and the White House is more powerful. Drafting regulations to limit the level of information distributed may be effective in preventing the information capture process. However, it is then imperative for congressmembers' to maintain objectivity within the rulemkaing process, as it stands this is not the case as congressmembers' often issue public comments with their own opinions on the matter. This would require a complete overhaul of the rulemaking process as it stands, as well as additional judicial reviews and oversight boards to maintain politicians' objectivity. 
 
 
 \newpage
