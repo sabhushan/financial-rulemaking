@@ -403,6 +403,7 @@ ggplot(comments2, aes(x = nominate_diff)) + geom_histogram()+ labs(x = "Diff in 
 
 ### Model 1
 $y_i = \beta_0 + \beta_1*nominate_i + \epsilon_i$
+
 $\beta_0$ referecences the level of success a congressmember experiences given that their nominate score is 0 (i.e. have the same nominate score as the President). $\beta_1$ references the level of success changed given a unit increase in the nominate scores of congressmembers. 
 
 H0: $\beta_1$=0 
@@ -455,13 +456,16 @@ t.test(comments2$success, comments2$nominate_diff, data = comments2) %>% tidy()
 ```
 
 Given the p-value of the t-test is 0.947 which is greater than 0.05, we fail to reject the null hypothesis and fail to conclude there is a statistically significant relationship between congressional success and congressmembers' nominate scores. Thus, we cannot conclude that those in the same party as the President experience higher levels of success in financial rulemaking. 
-### Model 2
+#### Model 2
 $y_i = \beta_0 + \beta_1*nominate_i + \beta_2*independence_i + \epsilon_i$
 
 H0: $\beta_1$=0 and $\beta_2$=0
+
 A congressmembers' nominate score and a federal agency levels of independence have no affect on the level of success in fullfilling a congressmembers' demands. 
 
+
 H1: $\beta_1$≠0 or $\beta_2$≠0
+
 A congressmembers' nominate score and/or a federal agency levels of independence have an affect on the level of success in fullfilling a congressmembers' demands. 
 
 ```{r}
@@ -473,6 +477,10 @@ m_mul
 
 #cov(comments2$Estimate,comments2$nominate_diff)
 ```
+For every 1 unit increase in nominate scores of congressmembers, congressional success increases by 0.392 points in federal rulemaking. The p-value is 0.417, since this is greater than 0.05, we fail to reject the null hypothesis that nominate scores or levels of agency independence do not affect congressional success. 
+For every 1 unit increase in independence estimates of federal financial agencies, congressional success increases by 0.0693 points in federal rulemaking. The p-value is 0.583, since this is greater than 0.05, we fail to reject the null hypothesis that nominate scores or levels of agency independence do not affect congressional success.
+
+
 ```{r}
 ggplot(m_mul %>% filter(term != "(Intercept)")) + 
   aes(x = term,
@@ -558,6 +566,13 @@ m_int <- model_int %>%
 m_int
 
 ```
+
+Holding federal independence estimates at 0 points, for every 1 unit increase in nominate scores of congressmembers, congressional success decreases by 0.0525 points in federal rulemaking. The p-value is 0.933, since this is greater than 0.05, we fail to reject the null hypothesis that nominate scores or levels of agency independence do not affect congressional success. Also, for every 1 unit increase in nominate scores, success changes by -0.0525 + 0.282 ⋅ Estimate. Since the p-value is 0.273>0.05, we fail to reject the null that success changes due to nominate scores dependant on independence estimates. 
+
+Holding congressional nominate scores at 0 points, for every 1 unit increase in independence estimates of federal financial agencies, congressional success decreases by 0.0356 points in federal rulemaking. The p-value is 0.821, since this is greater than 0.05, we fail to reject the null hypothesis that nominate scores or levels of agency independence do not affect congressional success. Also, for every 1 unit increase in federal independence estimate, success changes by -0.0356 + 0.282 ⋅ Nominate_scores. Since the p-value is 0.254>0.05, we fail to reject the null that success changes due to independence estimates dependant on noinate scores. 
+
+
+
 
 ```{r}
 ggplot(m_int %>% filter(term != "(Intercept)")) + 
