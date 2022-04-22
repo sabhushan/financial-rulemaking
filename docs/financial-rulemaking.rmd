@@ -36,7 +36,13 @@ bibliography: r-references.bib
 #library("papaja")
 # r_refs("r-references.bib")
 # Sets defaults for R chunks
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, # echo = TRUE means that your code will show
+                      warning=FALSE,
+                      message=FALSE,
+                      fig.path='figs/', ## where to save figures
+                      fig.height = 3,
+                      fig.width = 4,
+                      fig.align = 'center')
 requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
               "broom",
               "haven", 
@@ -48,9 +54,8 @@ requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
               "truncnorm",
               "ggridges",
               "here",
-              "fuzzyjoin",
-              "editData",
-              "readxl")
+              "readxl",
+              "gsheet")
 ## Install any you don't have
 to_install <- c(!requires %in% rownames(installed.packages()))
 install.packages(c(requires[to_install], "NA"), repos = "https://cloud.r-project.org/" )
@@ -62,6 +67,7 @@ library(magrittr)
 library(margins)
 library(here)
 library(readxl)
+library(gsheet)
 library(ggplot2); theme_set(theme_bw()) # global plot theme
 ## Colorblind and greyscale print-friendly scales
 library(viridisLite)
@@ -316,10 +322,10 @@ Unsurprisingly this model yields no significant results (Figure \@ref(fig:model-
 
 
 ```{r new_data}
-library(googlesheets4)
 
 #FIXME move this into another script updating the comment data from google sheet, so you don't need to ping google sheets every time you knit 
-comments <- read_sheet("https://docs.google.com/spreadsheets/d/1HBjG32qWVdf9YxfGPEJhNmSw65Z9XzPhHdDbLnc3mYc/edit?usp=sharing")
+#comments_sheet <- read_sheet("https://docs.google.com/spreadsheets/d/1HBjG32qWVdf9YxfGPEJhNmSw65Z9XzPhHdDbLnc3mYc/edit?usp=sharing")
+comments <- gsheet2tbl("https://docs.google.com/spreadsheets/d/1HBjG32qWVdf9YxfGPEJhNmSw65Z9XzPhHdDbLnc3mYc/edit?usp=sharing")
 
 load(here("data/members.Rdata"))
 
@@ -331,10 +337,10 @@ agency_data <- read_excel(here("data/federal_agencies_estimate.xlsx"))
 #FIXME 
 members %<>% 
   mutate(nominate_pres = case_when(
-  congress < 111 ~ 0.693,
-  congress >111 & congress <115 ~ -0.358,
-  congress > 115 & congress <117 ~ 0.403,
-  congress > 117 ~ -0.320))
+  congress < 111 ~ 0.693,                  #bush pres score 
+  congress >= 111 & congress <= 115 ~ -0.358,  #obama pres score
+  congress > 115 & congress <117 ~ 0.403,      #trump pres score
+  congress > 117 ~ -0.320))        #biden pres score
 
 # LOOK AT THIS: 
 members %>% 
@@ -357,7 +363,7 @@ comments1 %<>% left_join(members_selected)
 comments1 %<>% mutate(Agency = str_remove(id, "-.*") )
 
 # Inspect agencies
-# unique(d$Agency)
+unique(comments1$Agency)
 
 
 # Join in agency independence scores
@@ -388,51 +394,36 @@ p
 
 ```
 
-```{r real congress_ols_estimate}
-model <- lm(success ~ nominate_diff, data = comments2) 
-m <- model %>% 
-  tidy(conf.int = TRUE) 
-m
-ggplot(m %>% filter(term != "(Intercept)")) + 
-  aes(x = term,
-      y = estimate, 
-      ymin = conf.low, 
-      ymax = conf.high) + 
-  geom_pointrange() + 
-  geom_hline(yintercept = 0, color = "grey") + 
-  coord_flip() + 
-  labs(x="", y="OLS Estimate")
-m$.fitted
-```
-
-```{r real congress_plot}
-# illustrating with yhat formula; more easily done with augment()
-b0 <- m$estimate[1]
-b1 <- m$estimate[2]
-p +
-  geom_line(aes(
-                y = b0 + b1*1) ) + 
-  geom_line(aes(
-                y = b0 + b1*0) )  +
-  geom_ribbon(aes(ymax = b0 + b1*1, 
-                  ymin = b0 + b1*0), alpha = .1, color = NA)
-```
 
 ```{r hist-coalitions, fig.width=2, fig.height=2,  out.width = "30%"}
 ggplot(comments2, aes(x = success)) + geom_histogram()+ labs(x = "Congressional Success")
 ggplot(comments2, aes(x = Estimate)) + geom_histogram()+ labs(x = "Independence")
 ggplot(comments2, aes(x = nominate_diff)) + geom_histogram()+ labs(x = "Diff in nominate scores")
 ```
-### Multiple linear regression
-$y_i = \beta_0 + \beta_1*nominate_i + \beta_2*independence_i + \epsilon_i$
+
+### Model 1
+$y_i = \beta_0 + \beta_1*nominate_i + \epsilon_i$
+$\beta_0$ referecences the level of success a congressmember experiences given that their nominate score is 0 (i.e. have the same nominate score as the President). $\beta_1$ references the level of success changed given a unit increase in the nominate scores of congressmembers. 
+
+H0: $\beta_1$=0 
+Nominate scores of congressmembers have no affect on their success in agencies fullfilling their demands. That is, congressmembers in the same or differing party as the President do not experience greater levels of success in federal rulemaking.
+
+H1: $\beta_1$≠0
+Nominate scores of congressmembers have an affect on their success in agencies fullfilling their demands. That is, congressmembers in the same or differing party as the President do experience greater levels of success in federal rulemaking.
+
 ```{r}
-model_1 <- lm(success ~ nominate_diff + Estimate, data = comments2)
+model_nom <- lm(success ~ nominate_diff, data = comments2, y= TRUE, x=TRUE)
       augment()
-summary(model_1)
-m1 <- model_1 %>% 
+summary(model_nom)
+m_nom <- model_nom %>% 
   tidy(conf.int = TRUE) 
-m1
-ggplot(m1 %>% filter(term != "(Intercept)")) + 
+m_nom
+```
+$\beta_1$ is 1.10, suggesting that congressional success increases by 1.10 points as nominate scores of congressmembers increases by 1 unit. 
+
+```{r}
+
+ggplot(m_nom %>% filter(term != "(Intercept)")) + 
   aes(x = term,
       y = estimate, 
       ymin = conf.low, 
@@ -441,8 +432,129 @@ ggplot(m1 %>% filter(term != "(Intercept)")) +
   geom_hline(yintercept = 0, color = "grey") + 
   coord_flip() + 
   labs(x="", y="OLS Estimate")
+```
+
+#### Model 1: Plotting Results into Data
+```{r}
+
+b0 <- m_nom$estimate[1]
+b1 <- m_nom$estimate[2]
+augment_m_nom <- augment(model_nom)
+augment_m_nom
+
+
+p +
+  geom_line(aes(color = "Nominate Diff",
+                y = b0 + b1*nominate_diff) ) + 
+  geom_ribbon(aes(ymax = b0 + b1*nominate_diff, 
+                  ymin = b0 + b1*nominate_diff), alpha = .1, color = NA)
+
+#t-test
+model_nom
+t.test(comments2$success, comments2$nominate_diff, data = comments2) %>% tidy()
+```
+
+Given the p-value of the t-test is 0.947 which is greater than 0.05, we fail to reject the null hypothesis and fail to conclude there is a statistically significant relationship between congressional success and congressmembers' nominate scores. Thus, we cannot conclude that those in the same party as the President experience higher levels of success in financial rulemaking. 
+### Model 2
+$y_i = \beta_0 + \beta_1*nominate_i + \beta_2*independence_i + \epsilon_i$
+
+H0: $\beta_1$=0 and $\beta_2$=0
+A congressmembers' nominate score and a federal agency levels of independence have no affect on the level of success in fullfilling a congressmembers' demands. 
+
+H1: $\beta_1$≠0 or $\beta_2$≠0
+A congressmembers' nominate score and/or a federal agency levels of independence have an affect on the level of success in fullfilling a congressmembers' demands. 
+
+```{r}
+model_mul <- lm(success ~ nominate_diff + Estimate, data = comments2)
+model_mul
+m_mul <- model_mul %>% 
+  tidy(conf.int = TRUE) 
+m_mul
+
+#cov(comments2$Estimate,comments2$nominate_diff)
+```
+```{r}
+ggplot(m_mul %>% filter(term != "(Intercept)")) + 
+  aes(x = term,
+      y = estimate, 
+      ymin = conf.low, 
+      ymax = conf.high) + 
+  geom_pointrange() + 
+  geom_hline(yintercept = 0, color = "grey") + 
+  coord_flip() + 
+  labs(x="", y="OLS Estimate")
+```
+
+### Model 2: Plotting Results
+```{r}
+b0 <- m_mul$estimate[1]
+b1 <- m_mul$estimate[2]
+b2 <- m_mul$estimate[3]
+
+p +
+  geom_line(aes(color = "Party Name", 
+                y = b0 + b1*nominate_diff + b2*Estimate) ) + 
+  geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*Estimate, 
+                  ymin = b0 + b1*nominate_diff+ b2*Estimate), alpha = .1, color = NA)
+```
+
+### Model 2: Interpretation
+
+```{r, eval = FALSE}
+aug_mod_mul <- augment(m_mul)
+aug_mod_mul
+
+#.fitted() returning aes argument
+p + 
+  geom_line(aes(y = aug_mod_mul$.fitted)) + 
+  scale_x_continuous(limits = c(-40, max(comments2$nominate_diff))) + 
+  scale_y_continuous(limits = c(b0-3, max(comments2$success))) + 
+  #geom_hline(yintercept =  b0) + 
+  geom_label(aes(color = "Party Name"), x = 0, y = b0 + b1, label = expression(beta[0]+beta[1]*1), hjust = 0, vjust = 0,show.legend = FALSE, check_overlap = T)+
+    geom_label(aes(color = "Party Name"), x = 0, y = b0 + b1, label = round(b0 + b1,1), hjust = 1,  color = "black",  show.legend = FALSE, check_overlap = T)+
+  geom_point(aes(color = "Party Name"), x = 0, y = b0 + b1, shape = 1)
 
 ```
+
+### Model 2: Fit and Plotting Residuals
+```{r, eval = FALSE}
+#.fitted() returning aes argument
+#creating fit graph
+p + 
+  geom_line(aes(y = aug_mod_mul$.fitted)) + 
+  geom_point(aes(y = aug_mod_mul$.fitted), shape = 1, alpha = .2) + 
+  geom_segment(aes(xend = nominate_diff, yend = aug_mod_mul$.fitted ), alpha = .2, size = 2)
+
+#plotting residuals
+ggplot(m_mul) +
+  aes(y = .resid, x = nominate_diff) + 
+  geom_point(aes(color = "Party Name")) + 
+  scale_color_discrete() + 
+  ## to show how risiduals are the distance between an 
+  ## observation and the regression line:
+  geom_hline(yintercept = 0, color = "dark grey") +
+  geom_text(x= mean(m_mul$nominate_diff), y = 0, 
+            label = "Regression line") +
+  geom_col(aes(fill = party_name), alpha = .2, position ="identity") +
+  ## + labels:
+  labs(title = "Residuals (Observed - Predicted Success)",
+       y = "Residuals") 
+```
+
+### Model 3
+$y_i = \beta_0 + \beta_1*nominate_i + \beta_2*independence_i + \beta_3*nominate_iXindependence_i + \epsilon_i$
+
+H0: $\beta_1$=0 and $\beta_2$=0 and $\beta_3$=0
+A congressmembers' nominate score and a federal agency levels of independence have no affect on the level of success in fullfilling a congressmembers' demands. 
+
+H1: $\beta_1$≠0 or $\beta_2$≠0 or $\beta_3$≠0
+A congressmembers' nominate score and/or a federal agency levels of independence have an affect on the level of success in fullfilling a congressmembers' demands. 
+
+```{r}
+
+```
+
+
 
 
 ### AIC and BIC
@@ -464,10 +576,7 @@ ggplot(d) +
 
 
 ```
-# Interpretation 
-$y_i = \beta_0 + \beta_1*nominate_diff_i + \beta_2*independence_i + \epsilon_i$
 
-$y_i = \beta_0 + \beta_1*nominate_diff_i + \beta_2*independence_i +\beta_3*independence_iXnominate_diff_1 + \epsilon_i$
 
 # Discussion
 
