@@ -552,7 +552,7 @@ ggplot(tidy_m_mul %>% filter(term != "(Intercept)")) +
 ```
 
 ### Model 2: Plotting Results
-```{r, fig.width = 10, fig.height = 5}
+```{r, fig.width = 5, fig.height = 5}
 b0 <- tidy_m_mul$estimate[1]
 b1 <- tidy_m_mul$estimate[2]
 b2 <- tidy_m_mul$estimate[3]
@@ -572,17 +572,29 @@ p2 <- ggplot(comments2) +
   aes(x = nominate_diff, y = success, color = Agency) + 
   geom_jitter(aes(alpha = congress)) + scale_color_discrete()
 
-p2 
 #remove legend title
 p4 <- p2 + labs(color = NULL)
 
 #results by agency
+# p4 +
+#   geom_line(aes(color = "", 
+#                 y = b0 + b1*nominate_diff + b2*Estimate) ) + 
+#   geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*Estimate + 1.96*0.656, 
+#                   ymin = b0 + b1*nominate_diff+ b2*Estimate - 1.96*0.656), alpha = .1, color = NA) +
+#   labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+
 p4 +
-  geom_line(aes(color = "", 
-                y = b0 + b1*nominate_diff + b2*Estimate) ) + 
+  geom_line(aes(color = "CFPB", 
+                y = b0 + b1*nominate_diff + b2*4.1) ) + 
+  geom_line(aes(color = "OCC",
+                y = b0 + b1*nominate_diff + b2*1.643) )  +
+  geom_line(aes(color = "IRS", 
+                y = b0 + b1*nominate_diff + b2*0.174) )  + 
+  geom_line(aes(color = "FTC",
+                y = b0 + b1*nominate_diff + b2*2.269) ) + 
   geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*Estimate + 1.96*0.656, 
                   ymin = b0 + b1*nominate_diff+ b2*Estimate - 1.96*0.656), alpha = .1, color = NA) +
-  labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+    labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
 ```
 
 ### Model 2: Interpretation
