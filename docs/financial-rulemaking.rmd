@@ -594,8 +594,7 @@ p4 +
 ### Model 2: Interpretation
 
 ```{r, eval = FALSE}
-aug_mod_mul <- augment(model_mul)
-aug_mod_mul
+
 #.fitted() returning aes argument
 p + 
   geom_line(aes(y = aug_mod_mul$.fitted)) + 
@@ -609,8 +608,11 @@ p +
 ```
 
 ### Model 2: Fit and Plotting Residuals
-```{r}
+```{r, fig.width = 10, fig.height = 5}
 #creating fit graph
+aug_mod_mul <- augment(model_mul)
+aug_mod_mul
+
 aug_mod_mul %>% 
   ggplot() +
   aes(x = nominate_diff, y = success) + 
