@@ -424,12 +424,12 @@ Ideological distance of congressmembers from the President is associated with su
 ```{r}
 #creating 3 models using model summary
 #FIX "Estimate" var not showing up
-models <- list()
-models[['model_nom']] <- lm(success ~ nominate_diff, data = comments2, y= TRUE, x=TRUE)
-models[['model_mul']] <- lm(success ~ nominate_diff + Estimate, data = comments2)
-models[['model_int']] <- lm(success ~ nominate_diff*Estimate, data = comments2)
-
-msummary(models)
+# models <- list()
+# models[['model_nom']] <- lm(success ~ nominate_diff, data = comments2, y= TRUE, x=TRUE)
+# models[['model_mul']] <- lm(success ~ nominate_diff + Estimate, data = comments2)
+# models[['model_int']] <- lm(success ~ nominate_diff*Estimate, data = comments2)
+# 
+# msummary(models)
 
 ```
 
@@ -466,7 +466,7 @@ ggplot(tidy_m_nom %>% filter(term != "(Intercept)")) +
 ```
 
 #### Model 1: Plotting Results into Data
-```{r, fig.width = 2, fig.height = 3}
+```{r, fig.width = 10, fig.height = 5}
 b0 <- tidy_m_nom$estimate[1]
 b1 <- tidy_m_nom$estimate[2]
 
@@ -494,7 +494,7 @@ t.test(comments2$success, comments2$nominate_diff, data = comments2) %>% tidy()
 
 
 #### Model 1: Plotting Residuals
-```{r}
+```{r, fig.width = 10, fig.height = 5}
 
 augment_m_nom %>% 
   ggplot() +
@@ -552,7 +552,7 @@ ggplot(tidy_m_mul %>% filter(term != "(Intercept)")) +
 ```
 
 ### Model 2: Plotting Results
-```{r}
+```{r, fig.width = 10, fig.height = 5}
 b0 <- tidy_m_mul$estimate[1]
 b1 <- tidy_m_mul$estimate[2]
 b2 <- tidy_m_mul$estimate[3]
@@ -571,11 +571,10 @@ p +
 p2 <- ggplot(comments2) + 
   aes(x = nominate_diff, y = success, color = Agency) + 
   geom_jitter(aes(alpha = congress)) + scale_color_discrete()
-p2
 
+p2 
 #remove legend title
 p4 <- p2 + labs(color = NULL)
-p4
 
 #results by agency
 p4 +
@@ -584,8 +583,6 @@ p4 +
   geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*Estimate + 1.96*0.656, 
                   ymin = b0 + b1*nominate_diff+ b2*Estimate - 1.96*0.656), alpha = .1, color = NA) +
   labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
-
-tidy_m_mul
 ```
 
 ### Model 2: Interpretation
