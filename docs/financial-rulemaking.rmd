@@ -55,7 +55,8 @@ requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
               "ggridges",
               "here",
               "readxl",
-              "gsheet")
+              "gsheet",
+              "modelsummary")
 ## Install any you don't have
 to_install <- c(!requires %in% rownames(installed.packages()))
 install.packages(c(requires[to_install], "NA"), repos = "https://cloud.r-project.org/" )
@@ -68,6 +69,7 @@ library(margins)
 library(here)
 library(readxl)
 library(gsheet)
+library(modelsummary)
 library(ggplot2); theme_set(theme_bw()) # global plot theme
 ## Colorblind and greyscale print-friendly scales
 library(viridisLite)
@@ -386,10 +388,13 @@ ggplot(comments2) +
   aes(x = nominate_diff, y = success) + 
   geom_jitter(aes(alpha = congress)) 
 
-# add color by Gender, and save plot as p for future use
-p <- ggplot(comments2) + 
+# add color by party_name, and save plot as p for future use
+p1 <- ggplot(comments2) + 
   aes(x = nominate_diff, y = success, color = party_name) + 
   geom_jitter(aes(alpha = congress)) + scale_color_discrete()
+
+#remove legend title
+p <- p1 + labs(color = NULL)
 p
 
 ```
@@ -404,27 +409,52 @@ ggplot(comments2, aes(x = nominate_diff)) + geom_histogram()+ labs(x = "Diff in 
 ### Model 1
 $y_i = \beta_0 + \beta_1*nominate_i + \epsilon_i$
 
-$\beta_0$ referecences the level of success a congressmember experiences given that their nominate score is 0 (i.e. have the same nominate score as the President). $\beta_1$ references the level of success changed given a unit increase in the nominate scores of congressmembers. 
+$y_i$ is the extent to which a congressmember's demands are fullfilled by a federal agency, from a range of -2 (agency fulfilled the opposite of their asks) to 2 (agency completely fullfilled their asks) for all three models.
+
+$\beta_0$ references the level of success a congressmember experiences given that their nominate score is 0 (i.e. have the same nominate score as the President). $\beta_1$ references the level of success changed given a unit increase in a congressmember's ideological distance from the President. 
+
 
 H0: $\beta_1$=0 
-Nominate scores of congressmembers have no affect on their success in agencies fullfilling their demands. That is, congressmembers in the same or differing party as the President do not experience greater levels of success in federal rulemaking.
+Ideological distance of congressmembers from the President is not associated with success in agencies fullfilling their demands. 
+
 
 H1: $\beta_1$≠0
-Nominate scores of congressmembers have an affect on their success in agencies fullfilling their demands. That is, congressmembers in the same or differing party as the President do experience greater levels of success in federal rulemaking.
+Ideological distance of congressmembers from the President is associated with success in agencies fullfilling their demands. 
 
 ```{r}
+#creating 3 models using model summary
+#FIX "Estimate" var not showing up
+models <- list()
+models[['model_nom']] <- lm(success ~ nominate_diff, data = comments2, y= TRUE, x=TRUE)
+models[['model_mul']] <- lm(success ~ nominate_diff + Estimate, data = comments2)
+models[['model_int']] <- lm(success ~ nominate_diff*Estimate, data = comments2)
+
+msummary(models)
+
+```
+
+
+```{r}
+#model 1 summary using msummary()
 model_nom <- lm(success ~ nominate_diff, data = comments2, y= TRUE, x=TRUE)
       augment()
-summary(model_nom)
-m_nom <- model_nom %>% 
-  tidy(conf.int = TRUE) 
+msummary(model_nom)
+m_nom <- msummary(model_nom, statistic = c("p-value= {p.value}", "confidence-int" = {"conf.int"}), conf_level = .95)
 m_nom
+
+msummary(model_nom)
+
+#table summary using tidy
+tidy_m_nom <- model_nom %>%
+  tidy(conf.int = TRUE)
+
+tidy_m_nom
 ```
 $\beta_1$ is 1.10, suggesting that congressional success increases by 1.10 points as nominate scores of congressmembers increases by 1 unit. 
 
 ```{r}
-
-ggplot(m_nom %>% filter(term != "(Intercept)")) + 
+#created graph using tidy not msummary()
+ggplot(tidy_m_nom %>% filter(term != "(Intercept)")) + 
   aes(x = term,
       y = estimate, 
       ymin = conf.low, 
@@ -436,32 +466,56 @@ ggplot(m_nom %>% filter(term != "(Intercept)")) +
 ```
 
 #### Model 1: Plotting Results into Data
-```{r}
+```{r, fig.width = 2, fig.height = 3}
+b0 <- tidy_m_nom$estimate[1]
+b1 <- tidy_m_nom$estimate[2]
 
-b0 <- m_nom$estimate[1]
-b1 <- m_nom$estimate[2]
 augment_m_nom <- augment(model_nom)
 augment_m_nom
 
-
+#graph separated by party
 p +
-  geom_line(aes(color = "Nominate Diff",
-                y = b0 + b1*nominate_diff) ) + 
-  geom_ribbon(aes(ymax = b0 + b1*nominate_diff, 
-                  ymin = b0 + b1*nominate_diff), alpha = .1, color = NA)
+  geom_line(aes(color = "",
+                y = b0 + b1*nominate_diff)) + 
+  geom_ribbon(aes(ymax = b0 + b1*nominate_diff + 1.96*0.656, 
+                  ymin = b0 + b1*nominate_diff - 1.96*0.656), alpha = .1, color = NA) +
+  labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+
+#remove nominate diff legend color
+#make nominate_diff absolute value
+#are comments from the obama administration? how many trump?
+#facet by president 
+
 
 #t-test
 model_nom
 t.test(comments2$success, comments2$nominate_diff, data = comments2) %>% tidy()
 ```
 
-Given the p-value of the t-test is 0.947 which is greater than 0.05, we fail to reject the null hypothesis and fail to conclude there is a statistically significant relationship between congressional success and congressmembers' nominate scores. Thus, we cannot conclude that those in the same party as the President experience higher levels of success in financial rulemaking. 
+
+#### Model 1: Plotting Residuals
+```{r}
+
+augment_m_nom %>% 
+  ggplot() +
+  aes(x = nominate_diff, y = success) + 
+  geom_line(aes(y = augment_m_nom$.fitted)) + # with .fitted from augment()
+  geom_point(aes(y = augment_m_nom$.fitted), shape = 1, alpha = 1) + # with .fitted from augment()
+  geom_segment(aes(xend = nominate_diff, yend = augment_m_nom$.fitted), alpha = 1, size = 2) +
+  labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+#adding residuals color
+```
+
+
+Given the p-value of the t-test is 0.947 which is greater than 0.05, we fail to reject the null hypothesis and fail to conclude there is a statistically significant relationship between congressional success and a congressmember's ideological distance from the President.
+
+
 #### Model 2
 $y_i = \beta_0 + \beta_1*nominate_i + \beta_2*independence_i + \epsilon_i$
 
 H0: $\beta_1$=0 and $\beta_2$=0
 
-A congressmembers' nominate score and a federal agency levels of independence have no affect on the level of success in fullfilling a congressmembers' demands. 
+Ideological distance of congressmembers from the President is not associated with success in agencies fullfilling their demands. 
 
 
 H1: $\beta_1$≠0 or $\beta_2$≠0
@@ -469,11 +523,14 @@ H1: $\beta_1$≠0 or $\beta_2$≠0
 A congressmembers' nominate score and/or a federal agency levels of independence have an affect on the level of success in fullfilling a congressmembers' demands. 
 
 ```{r}
+#creating table with msummary()
 model_mul <- lm(success ~ nominate_diff + Estimate, data = comments2)
 model_mul
-m_mul <- model_mul %>% 
-  tidy(conf.int = TRUE) 
+m_mul <- msummary(model_mul, statistic = c("p-value= {p.value}", "confidence-int" = {"conf.int"}), conf_level = .95)
 m_mul
+#creating table using tidy
+tidy_m_mul <- model_mul %>%
+  tidy(conf.int = TRUE)
 
 #cov(comments2$Estimate,comments2$nominate_diff)
 ```
@@ -482,7 +539,8 @@ For every 1 unit increase in independence estimates of federal financial agencie
 
 
 ```{r}
-ggplot(m_mul %>% filter(term != "(Intercept)")) + 
+#needed tidy table for ggplot
+ggplot(tidy_m_mul %>% filter(term != "(Intercept)")) + 
   aes(x = term,
       y = estimate, 
       ymin = conf.low, 
@@ -495,15 +553,39 @@ ggplot(m_mul %>% filter(term != "(Intercept)")) +
 
 ### Model 2: Plotting Results
 ```{r}
-b0 <- m_mul$estimate[1]
-b1 <- m_mul$estimate[2]
-b2 <- m_mul$estimate[3]
+b0 <- tidy_m_mul$estimate[1]
+b1 <- tidy_m_mul$estimate[2]
+b2 <- tidy_m_mul$estimate[3]
 
+#results by party name
 p +
-  geom_line(aes(color = "Party Name", 
+  geom_line(aes(color = "", 
                 y = b0 + b1*nominate_diff + b2*Estimate) ) + 
-  geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*Estimate, 
-                  ymin = b0 + b1*nominate_diff+ b2*Estimate), alpha = .1, color = NA)
+  geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*Estimate + 1.96*0.656, 
+                  ymin = b0 + b1*nominate_diff+ b2*Estimate - 1.96*0.656), alpha = .1, color = NA) +
+  labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+
+
+
+# add color by agency
+p2 <- ggplot(comments2) + 
+  aes(x = nominate_diff, y = success, color = Agency) + 
+  geom_jitter(aes(alpha = congress)) + scale_color_discrete()
+p2
+
+#remove legend title
+p4 <- p2 + labs(color = NULL)
+p4
+
+#results by agency
+p4 +
+  geom_line(aes(color = "", 
+                y = b0 + b1*nominate_diff + b2*Estimate) ) + 
+  geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*Estimate + 1.96*0.656, 
+                  ymin = b0 + b1*nominate_diff+ b2*Estimate - 1.96*0.656), alpha = .1, color = NA) +
+  labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+
+tidy_m_mul
 ```
 
 ### Model 2: Interpretation
@@ -561,9 +643,15 @@ A congressmembers' nominate score and/or a federal agency levels of independence
 ```{r}
 model_int <- lm(success ~ nominate_diff*Estimate, data = comments2) 
 
-m_int <- model_int %>% 
-  tidy(conf.int = TRUE) 
+#table with msummary()
+m_int <- msummary(model_int, statistic = c("p-value= {p.value}", "confidence-int" = {"conf.int"}), conf_level = .95)
 m_int
+
+#table with tidy
+tidy_m_int <- model_int %>% 
+  tidy(conf.int = TRUE) 
+
+
 
 ```
 
@@ -575,7 +663,7 @@ Holding congressional nominate scores at 0 points, for every 1 unit increase in 
 
 
 ```{r}
-ggplot(m_int %>% filter(term != "(Intercept)")) + 
+ggplot(tidy_m_int %>% filter(term != "(Intercept)")) + 
   aes(x = term,
       y = estimate, 
       ymin = conf.low, 
