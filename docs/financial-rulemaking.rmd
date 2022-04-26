@@ -576,12 +576,6 @@ p2 <- ggplot(comments2) +
 p4 <- p2 + labs(color = NULL)
 
 #results by agency
-# p4 +
-#   geom_line(aes(color = "", 
-#                 y = b0 + b1*nominate_diff + b2*Estimate) ) + 
-#   geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*Estimate + 1.96*0.656, 
-#                   ymin = b0 + b1*nominate_diff+ b2*Estimate - 1.96*0.656), alpha = .1, color = NA) +
-#   labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
 
 p4 +
   geom_line(aes(color = "CFPB", 
@@ -600,9 +594,8 @@ p4 +
 ### Model 2: Interpretation
 
 ```{r, eval = FALSE}
-aug_mod_mul <- augment(m_mul)
+aug_mod_mul <- augment(model_mul)
 aug_mod_mul
-
 #.fitted() returning aes argument
 p + 
   geom_line(aes(y = aug_mod_mul$.fitted)) + 
@@ -616,28 +609,18 @@ p +
 ```
 
 ### Model 2: Fit and Plotting Residuals
-```{r, eval = FALSE}
-#.fitted() returning aes argument
+```{r}
 #creating fit graph
-p + 
-  geom_line(aes(y = aug_mod_mul$.fitted)) + 
-  geom_point(aes(y = aug_mod_mul$.fitted), shape = 1, alpha = .2) + 
-  geom_segment(aes(xend = nominate_diff, yend = aug_mod_mul$.fitted ), alpha = .2, size = 2)
+aug_mod_mul %>% 
+  ggplot() +
+  aes(x = nominate_diff, y = success) + 
+  geom_line(aes(y = aug_mod_mul$.fitted)) + # with .fitted from augment()
+  geom_point(aes(y = aug_mod_mul$.fitted), shape = 1, alpha = 1) + # with .fitted from augment()
+  geom_segment(aes(xend = nominate_diff, yend = aug_mod_mul$.fitted), alpha = 1, size = 2) +
+  labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+#adding residuals color
 
-#plotting residuals
-ggplot(m_mul) +
-  aes(y = .resid, x = nominate_diff) + 
-  geom_point(aes(color = "Party Name")) + 
-  scale_color_discrete() + 
-  ## to show how risiduals are the distance between an 
-  ## observation and the regression line:
-  geom_hline(yintercept = 0, color = "dark grey") +
-  geom_text(x= mean(m_mul$nominate_diff), y = 0, 
-            label = "Regression line") +
-  geom_col(aes(fill = party_name), alpha = .2, position ="identity") +
-  ## + labels:
-  labs(title = "Residuals (Observed - Predicted Success)",
-       y = "Residuals") 
+
 ```
 
 ### Model 3
