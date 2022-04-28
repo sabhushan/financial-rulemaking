@@ -406,7 +406,7 @@ p
 ```
 
 
-```{r hist-coalitions, fig.width=2, fig.height=2,  out.width = "30%"}
+```{r hist-coalitions, fig.width=3, fig.height=2,  out.width = "30%"}
 ggplot(comments2, aes(x = success)) + geom_histogram()+ labs(x = "Congressional Success")
 ggplot(comments2, aes(x = Estimate)) + geom_histogram()+ labs(x = "Independence")
 ggplot(comments2, aes(x = nominate_diff)) + geom_histogram()+ labs(x = "Distance in Ideological Scores")
@@ -472,7 +472,7 @@ ggplot(tidy_m_nom %>% filter(term != "(Intercept)")) +
 ```
 
 #### Model 1: Plotting Results into Data
-```{r, fig.width = 5, fig.height = 5}
+```{r, fig.width = 7, fig.height = 5}
 b0 <- tidy_m_nom$estimate[1]
 b1 <- tidy_m_nom$estimate[2]
 
@@ -561,7 +561,7 @@ ggplot(tidy_m_mul %>% filter(term != "(Intercept)")) +
 ```
 
 ### Model 2: Plotting Results
-```{r, fig.width = 5, fig.height = 5}
+```{r, fig.width = 7, fig.height = 5}
 b0 <- tidy_m_mul$estimate[1]
 b1 <- tidy_m_mul$estimate[2]
 b2 <- tidy_m_mul$estimate[3]
