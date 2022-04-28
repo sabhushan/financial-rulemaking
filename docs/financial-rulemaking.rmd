@@ -56,7 +56,10 @@ requires <- c("tidyverse", # tidyverse includes dplyr and ggplot2
               "here",
               "readxl",
               "gsheet",
-              "modelsummary")
+              "modelsummary",
+              "performance",
+              "see",
+              "patchwork")
 ## Install any you don't have
 to_install <- c(!requires %in% rownames(installed.packages()))
 install.packages(c(requires[to_install], "NA"), repos = "https://cloud.r-project.org/" )
@@ -70,6 +73,9 @@ library(here)
 library(readxl)
 library(gsheet)
 library(modelsummary)
+library(performance)
+library(see)
+library(patchwork)
 library(ggplot2); theme_set(theme_bw()) # global plot theme
 ## Colorblind and greyscale print-friendly scales
 library(viridisLite)
@@ -351,7 +357,7 @@ members %>%
 
 # Make ideological distance from president variable
 members %<>% mutate(
-nominate_diff = nominate.dim1-nominate_pres)
+nominate_diff = abs(nominate.dim1-nominate_pres))
 
 # subset comments to those from an icpsr-matched member of Congress 
 comments1 <- comments %>% drop_na(icpsr)
@@ -391,7 +397,7 @@ ggplot(comments2) +
 # add color by party_name, and save plot as p for future use
 p1 <- ggplot(comments2) + 
   aes(x = nominate_diff, y = success, color = party_name) + 
-  geom_jitter(aes(alpha = congress)) + scale_color_discrete()
+  geom_jitter(aes(alpha = congress), show.legend = FALSE) + scale_color_discrete()
 
 #remove legend title
 p <- p1 + labs(color = NULL)
@@ -403,7 +409,7 @@ p
 ```{r hist-coalitions, fig.width=2, fig.height=2,  out.width = "30%"}
 ggplot(comments2, aes(x = success)) + geom_histogram()+ labs(x = "Congressional Success")
 ggplot(comments2, aes(x = Estimate)) + geom_histogram()+ labs(x = "Independence")
-ggplot(comments2, aes(x = nominate_diff)) + geom_histogram()+ labs(x = "Diff in nominate scores")
+ggplot(comments2, aes(x = nominate_diff)) + geom_histogram()+ labs(x = "Distance in Ideological Scores")
 ```
 
 ### Model 1
@@ -466,7 +472,7 @@ ggplot(tidy_m_nom %>% filter(term != "(Intercept)")) +
 ```
 
 #### Model 1: Plotting Results into Data
-```{r, fig.width = 10, fig.height = 5}
+```{r, fig.width = 5, fig.height = 5}
 b0 <- tidy_m_nom$estimate[1]
 b1 <- tidy_m_nom$estimate[2]
 
@@ -475,7 +481,7 @@ augment_m_nom
 
 #graph separated by party
 p +
-  geom_line(aes(color = "",
+  geom_line(aes(color = NULL,
                 y = b0 + b1*nominate_diff)) + 
   geom_ribbon(aes(ymax = b0 + b1*nominate_diff + 1.96*0.656, 
                   ymin = b0 + b1*nominate_diff - 1.96*0.656), alpha = .1, color = NA) +
@@ -504,6 +510,9 @@ augment_m_nom %>%
   geom_segment(aes(xend = nominate_diff, yend = augment_m_nom$.fitted), alpha = 1, size = 2) +
   labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
 #adding residuals color
+
+#plotting residuals using check_model()
+check_model(model_nom)
 ```
 
 
@@ -570,7 +579,7 @@ p +
 # add color by agency
 p2 <- ggplot(comments2) + 
   aes(x = nominate_diff, y = success, color = Agency) + 
-  geom_jitter(aes(alpha = congress)) + scale_color_discrete()
+  geom_jitter(aes(alpha = congress), show.legend = FALSE) + scale_color_discrete()
 
 #remove legend title
 p4 <- p2 + labs(color = NULL)
@@ -586,8 +595,8 @@ p4 +
                 y = b0 + b1*nominate_diff + b2*0.174) )  + 
   geom_line(aes(color = "FTC",
                 y = b0 + b1*nominate_diff + b2*2.269) ) + 
-  geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*Estimate + 1.96*0.656, 
-                  ymin = b0 + b1*nominate_diff+ b2*Estimate - 1.96*0.656), alpha = .1, color = NA) +
+  geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*4.1 + 1.96*0.656, 
+                  ymin = b0 + b1*nominate_diff+ b2*0.174 - 1.96*0.656), alpha = .1, color = NA) +
     labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
 ```
 
@@ -622,7 +631,8 @@ aug_mod_mul %>%
   labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
 #adding residuals color
 
-
+#plotting residuals using check_model()
+check_model(model_mul)
 ```
 
 ### Model 3
@@ -668,6 +678,61 @@ ggplot(tidy_m_int %>% filter(term != "(Intercept)")) +
   labs(x="", y="OLS Estimate")
 ```
 
+
+
+### Model 3: Marginal Effect
+```{r, fig.width = 10, fig.height = 5}
+marginal_effects <- margins(model_int)
+summary(marginal_effects)
+
+#graphing marginal effects
+me <- as_tibble(summary(marginal_effects))
+
+ggplot(me) + 
+  aes(x = factor,
+      y = AME, 
+      ymin = lower, 
+      ymax = upper)+
+  geom_pointrange() + 
+  geom_hline(yintercept = 0, color = "gray80") +
+  coord_flip() +
+  labs(x = NULL, y = "Average Marginal Effect") 
+
+#creating cplot
+cplot_points <- cplot(model_int, x = "Estimate", draw = F)
+
+#plotting cplot
+ggplot(data = cplot_points) +
+  aes(x = reorder(xvals, yvals),
+      y = yvals, 
+      ymin = lower, 
+      ymax = upper) + 
+  geom_pointrange() + 
+  coord_flip() +
+  labs(x = NULL, y = "Predicted Success") 
+
+```
+
+
+
+### Model 3: Fit and Plotting Residuals
+```{r, fig.width = 10, fig.height = 5}
+#creating fit graph
+aug_mod_int <- augment(model_int)
+aug_mod_int
+
+aug_mod_int %>% 
+  ggplot() +
+  aes(x = nominate_diff, y = success) + 
+  geom_line(aes(y = aug_mod_int$.fitted)) + # with .fitted from augment()
+  geom_point(aes(y = aug_mod_int$.fitted), shape = 1, alpha = 1) + # with .fitted from augment()
+  geom_segment(aes(xend = nominate_diff, yend = aug_mod_int$.fitted), alpha = 1, size = 2) +
+  labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+#adding residuals color
+
+#plotting residuals using check_model()
+check_model(model_int)
+```
 
 ### AIC and BIC
 
