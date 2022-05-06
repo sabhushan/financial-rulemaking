@@ -736,13 +736,13 @@ b1 <- tidy_m_int$estimate[2]
 b2 <- tidy_m_int$estimate[3]
 
 #results by party name
-p +
-  geom_line(aes(color = NULL, 
-                y = b0 + b1*nominate_diff + b2*Independence) ) + 
-  geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*4.1 + 1.96*0.656, 
-                  ymin = b0 + b1*nominate_diff+ b2*0.174 - 1.96*0.656), alpha = .1, color = NA) +
-  labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
-
+# p +
+#   geom_line(aes(color = NULL, 
+#                 y = b0 + b1*nominate_diff + b2*Independence) ) + 
+#   geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*4.1 + 1.96*0.656, 
+#                   ymin = b0 + b1*nominate_diff+ b2*0.174 - 1.96*0.656), alpha = .1, color = NA) +
+#   labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+# 
 
 
 # add color by agency
