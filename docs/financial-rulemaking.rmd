@@ -302,19 +302,7 @@ p +
   geom_line(aes(y = m1$.fitted)) + # with .fitted from augment()
   geom_point(aes(y = m1$.fitted), shape = 1, alpha = .2) + # with .fitted from augment()
   geom_segment(aes(xend = independence, yend = m1$.fitted ), alpha = .2, size = 2)
-ggplot(m1) +
-  aes(y = .resid, x = party_affiliation) + 
-  geom_point(aes(color = party_affiliation)) + 
-  scale_color_viridis_c() + 
-  ## to show how risiduals are the distance between an 
-  ## observation and the regression line:
-  geom_hline(yintercept = 0, color = "dark grey") +
-  geom_text(x= mean(m1$independence), y = 0, 
-            label = "Regression line") +
-  #geom_col(aes(fill = party_affiliation), alpha = .2, position ="identity") +
-  ## + labels:
-  labs(title = "Residuals (Observed - Predicted Independence)",
-       y = "Residuals") 
+
 ```
 
 ### AIC and BIC
@@ -380,11 +368,14 @@ comments1 %<>% left_join(agency_data, by = "Agency", copy = FALSE)
 # Subset to agencies for this study
 comments2 <- comments1 %>% filter(!is.na(Estimate))
 
+#Change coloumn name "Estimate" to Independence
+names(comments2)[names(comments2) == 'Estimate'] <- "Independence"
+
 # inspect agencies
 # unique(comments2$Agency)
 
 comments2 %>%
-  select(congress, bioname, icpsr, party_name, nominate.dim1, nominate_pres, nominate_diff, Agency, Estimate) 
+  select(congress, bioname, icpsr, party_name, nominate.dim1, nominate_pres, nominate_diff, Agency, Independence) 
 ```
 ## Real data model
 
@@ -408,7 +399,7 @@ p
 
 ```{r hist-coalitions, fig.width=3, fig.height=2,  out.width = "30%"}
 ggplot(comments2, aes(x = success)) + geom_histogram()+ labs(x = "Congressional Success")
-ggplot(comments2, aes(x = Estimate)) + geom_histogram()+ labs(x = "Independence")
+ggplot(comments2, aes(x = Independence)) + geom_histogram()+ labs(x = "Independence")
 ggplot(comments2, aes(x = nominate_diff)) + geom_histogram()+ labs(x = "Distance in Ideological Scores")
 ```
 
@@ -456,7 +447,7 @@ tidy_m_nom <- model_nom %>%
 
 tidy_m_nom
 ```
-$\beta_1$ is 1.10, suggesting that congressional success increases by 1.10 points as nominate scores of congressmembers increases by 1 unit. 
+$\beta_1$ is 0.300, suggesting that congressional success decreases by 0.3 points as ideological distance between legislators and their President increases by 1 point. 
 
 ```{r}
 #created graph using tidy not msummary()
@@ -487,8 +478,7 @@ p +
                   ymin = b0 + b1*nominate_diff - 1.96*0.656), alpha = .1, color = NA) +
   labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
 
-#remove nominate diff legend color
-#make nominate_diff absolute value
+
 #are comments from the obama administration? how many trump?
 #facet by president 
 
@@ -511,6 +501,9 @@ augment_m_nom %>%
   labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
 #adding residuals color
 
+```
+
+```{r, fig.width = 10, fig.height = 10}
 #plotting residuals using check_model()
 check_model(model_nom)
 ```
@@ -533,7 +526,7 @@ A congressmembers' nominate score and/or a federal agency levels of independence
 
 ```{r}
 #creating table with msummary()
-model_mul <- lm(success ~ nominate_diff + Estimate, data = comments2)
+model_mul <- lm(success ~ nominate_diff + Independence, data = comments2)
 model_mul
 m_mul <- msummary(model_mul, statistic = c("p-value= {p.value}", "confidence-int" = {"conf.int"}), conf_level = .95)
 m_mul
@@ -543,8 +536,9 @@ tidy_m_mul <- model_mul %>%
 
 #cov(comments2$Estimate,comments2$nominate_diff)
 ```
-For every 1 unit increase in nominate scores of congressmembers, congressional success increases by 0.392 points in federal rulemaking. The p-value is 0.417, since this is greater than 0.05, we fail to reject the null hypothesis that nominate scores or levels of agency independence do not affect congressional success. 
-For every 1 unit increase in independence estimates of federal financial agencies, congressional success increases by 0.0693 points in federal rulemaking. The p-value is 0.583, since this is greater than 0.05, we fail to reject the null hypothesis that nominate scores or levels of agency independence do not affect congressional success.
+For every 1 point increase in ideological distance of congressmembers, congressional success decreases by 0.321 points in federal rulemaking. The p-value is 0.610, since this is greater than 0.05, we fail to reject the null hypothesis that nominate scores or levels of agency independence do not affect congressional success.
+
+For every 1 point increase in independence estimates of federal financial agencies, congressional success increases by 0.092 points in federal rulemaking. The p-value is 0.459, since this is greater than 0.05, we fail to reject the null hypothesis that nominate scores or levels of agency independence do not affect congressional success.
 
 
 ```{r}
@@ -567,13 +561,13 @@ b1 <- tidy_m_mul$estimate[2]
 b2 <- tidy_m_mul$estimate[3]
 
 #results by party name
-p +
-  geom_line(aes(color = "", 
-                y = b0 + b1*nominate_diff + b2*Estimate) ) + 
-  geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*Estimate + 1.96*0.656, 
-                  ymin = b0 + b1*nominate_diff+ b2*Estimate - 1.96*0.656), alpha = .1, color = NA) +
-  labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
-
+# p +
+#   geom_line(aes(color = NULL, 
+#                 y = b0 + b1*nominate_diff + b2*Estimate) ) + 
+#   geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*4.1 + 1.96*0.656, 
+#                   ymin = b0 + b1*nominate_diff+ b2*0.174 - 1.96*0.656), alpha = .1, color = NA) +
+#   labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+# 
 
 
 # add color by agency
@@ -600,21 +594,6 @@ p4 +
     labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
 ```
 
-### Model 2: Interpretation
-
-```{r, eval = FALSE}
-
-#.fitted() returning aes argument
-p + 
-  geom_line(aes(y = aug_mod_mul$.fitted)) + 
-  scale_x_continuous(limits = c(-40, max(comments2$nominate_diff))) + 
-  scale_y_continuous(limits = c(b0-3, max(comments2$success))) + 
-  #geom_hline(yintercept =  b0) + 
-  geom_label(aes(color = "Party Name"), x = 0, y = b0 + b1, label = expression(beta[0]+beta[1]*1), hjust = 0, vjust = 0,show.legend = FALSE, check_overlap = T)+
-    geom_label(aes(color = "Party Name"), x = 0, y = b0 + b1, label = round(b0 + b1,1), hjust = 1,  color = "black",  show.legend = FALSE, check_overlap = T)+
-  geom_point(aes(color = "Party Name"), x = 0, y = b0 + b1, shape = 1)
-
-```
 
 ### Model 2: Fit and Plotting Residuals
 ```{r, fig.width = 10, fig.height = 5}
@@ -629,11 +608,31 @@ aug_mod_mul %>%
   geom_point(aes(y = aug_mod_mul$.fitted), shape = 1, alpha = 1) + # with .fitted from augment()
   geom_segment(aes(xend = nominate_diff, yend = aug_mod_mul$.fitted), alpha = 1, size = 2) +
   labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
-#adding residuals color
 
+#plotting residuals with color = Agency
+aug_mod_mul %>% 
+  ggplot() +
+  aes(y = .resid, x = nominate_diff) + 
+  geom_point(aes(color = "Agency")) + 
+  scale_color_discrete() + 
+  ## to show how risiduals are the distance between an 
+  ## observation and the regression line:
+  geom_hline(yintercept = 0, color = "dark grey") +
+  geom_text(x= mean(aug_mod_mul$nominate_diff), y = 0, 
+            label = "Regression line") +
+  geom_col(aes(fill = "Agency"), alpha = 1, position ="identity") +
+  ## + labels:
+  labs(title = "Residuals (Observed - Predicted Success)",
+       y = "Residuals", x = "Ideological Distance from President") 
+
+```
+
+```{r, fig.width = 10, fig.height = 10}
 #plotting residuals using check_model()
 check_model(model_mul)
 ```
+
+
 
 ### Model 3
 $y_i = \beta_0 + \beta_1*nominate_i + \beta_2*independence_i + \beta_3*nominate_iXindependence_i + \epsilon_i$
@@ -645,7 +644,7 @@ H1: $\beta_1$≠0 or $\beta_2$≠0 or $\beta_3$≠0
 A congressmembers' nominate score and/or a federal agency levels of independence have an affect on the level of success in fullfilling a congressmembers' demands. 
 
 ```{r}
-model_int <- lm(success ~ nominate_diff*Estimate, data = comments2) 
+model_int <- lm(success ~ nominate_diff*Independence, data = comments2) 
 
 #table with msummary()
 m_int <- msummary(model_int, statistic = c("p-value= {p.value}", "confidence-int" = {"conf.int"}), conf_level = .95)
@@ -655,15 +654,13 @@ m_int
 tidy_m_int <- model_int %>% 
   tidy(conf.int = TRUE) 
 
-
-
 ```
 
-Holding federal independence estimates at 0 points, for every 1 unit increase in nominate scores of congressmembers, congressional success decreases by 0.0525 points in federal rulemaking. The p-value is 0.933, since this is greater than 0.05, we fail to reject the null hypothesis that nominate scores or levels of agency independence do not affect congressional success. Also, for every 1 unit increase in nominate scores, success changes by -0.0525 + 0.282 ⋅ Estimate. Since the p-value is 0.273>0.05, we fail to reject the null that success changes due to nominate scores dependant on independence estimates. 
+Holding federal independence estimates at 0 points, for every 1 unit increase in nominate scores of congressmembers, congressional success decreases by 0.0525 points in federal rulemaking. The p-value is 0.933, since this is greater than 0.05, we fail to reject the null hypothesis that nominate scores or levels of agency independence do not affect congressional success. Also, for every 1 unit increase in nominate scores, success changes by 0.630 + 0.700 ⋅ Estimate. Thus, agencies with the highest estimate (the FTC with an independence score of 4.1), the impact of a one unit increase in the ideological distance between a legislator and the President on congressional success is 0.630 + 0.700(4.1) = 3.5. 
 
-Holding congressional nominate scores at 0 points, for every 1 unit increase in independence estimates of federal financial agencies, congressional success decreases by 0.0356 points in federal rulemaking. The p-value is 0.821, since this is greater than 0.05, we fail to reject the null hypothesis that nominate scores or levels of agency independence do not affect congressional success. Also, for every 1 unit increase in federal independence estimate, success changes by -0.0356 + 0.282 ⋅ Nominate_scores. Since the p-value is 0.254>0.05, we fail to reject the null that success changes due to independence estimates dependant on noinate scores. 
+For agencies with low independence scores  (i.e. the IRS with 0.174), the impact of a one unit increase in the ideological distance between a legislator and the President on congressional success is 0.630 + 0.700(0.174) = 0.7518. Thus, agencies with higher independence scores are less responsive to differences in ideology impacting congressional success. Since the p-value is 0.027<0.05, we reject the null that success does not change due to nominate scores, dependent on independence estimates. 
 
-
+At low levels of agency independence, more ideologically distant legislators are less successful. But at more independent agencies, there is no difference in success for legislators who are closer or more distant from the president. 
 
 
 ```{r}
@@ -699,7 +696,11 @@ ggplot(me) +
   labs(x = NULL, y = "Average Marginal Effect") 
 
 #creating cplot
-cplot_points <- cplot(model_int, x = "Estimate", draw = F)
+cplot_points <- cplot(model_int, x = "Independence", draw = F)
+
+#cplot by Agency
+cplot_points1 <- cplot(model_int, x = "nominate_diff", draw = F)
+
 
 #plotting cplot
 ggplot(data = cplot_points) +
@@ -711,8 +712,62 @@ ggplot(data = cplot_points) +
   coord_flip() +
   labs(x = NULL, y = "Predicted Success") 
 
+#plotting cplot by agency
+ggplot(data = cplot_points1) +
+  aes(x = reorder(xvals, yvals),
+      y = yvals, 
+      ymin = lower, 
+      ymax = upper) + 
+  geom_pointrange() + 
+  coord_flip() +
+  labs(x = "Ideological Distance from President", y = "Predicted Success") 
+
 ```
 
+For a legislators who are average on all characteristics, the marginal change of a 1-point increase in ideological distance from the President is a 0.327 decrease in congressional success, holding independence constant. This was not statistically significant with a p-value of 0.5844. 
+
+For every one unit increase in independence scores for agencies, congressional success increased by 0.0905, holding ideological distance constant.This was not statistically significant with a p-value of 0.4452.
+
+
+### Model 3: Plotting Results
+```{r, fig.width = 7, fig.height = 5}
+b0 <- tidy_m_int$estimate[1]
+b1 <- tidy_m_int$estimate[2]
+b2 <- tidy_m_int$estimate[3]
+
+#results by party name
+p +
+  geom_line(aes(color = NULL, 
+                y = b0 + b1*nominate_diff + b2*Independence) ) + 
+  geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*4.1 + 1.96*0.656, 
+                  ymin = b0 + b1*nominate_diff+ b2*0.174 - 1.96*0.656), alpha = .1, color = NA) +
+  labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+
+
+
+# add color by agency
+p2 <- ggplot(comments2) + 
+  aes(x = nominate_diff, y = success, color = Agency) + 
+  geom_jitter(aes(alpha = congress), show.legend = FALSE) + scale_color_discrete()
+
+#remove legend title
+p4 <- p2 + labs(color = NULL)
+
+#results by agency
+
+p4 +
+  geom_line(aes(color = "CFPB", 
+                y = b0 + b1*nominate_diff + b2*4.1) ) + 
+  geom_line(aes(color = "OCC",
+                y = b0 + b1*nominate_diff + b2*1.643) )  +
+  geom_line(aes(color = "IRS", 
+                y = b0 + b1*nominate_diff + b2*0.174) )  + 
+  geom_line(aes(color = "FTC",
+                y = b0 + b1*nominate_diff + b2*2.269) ) + 
+  geom_ribbon(aes(ymax = b0 + b1*nominate_diff+ b2*4.1 + 1.96*0.656, 
+                  ymin = b0 + b1*nominate_diff+ b2*0.174 - 1.96*0.656), alpha = .1, color = NA) +
+    labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
+```
 
 
 ### Model 3: Fit and Plotting Residuals
@@ -730,29 +785,22 @@ aug_mod_int %>%
   labs(y = "Congressional Success", x = "Congressmember's Ideological Distance from President")
 #adding residuals color
 
+```
+
+```{r, fig.width = 10, fig.height = 10}
 #plotting residuals using check_model()
 check_model(model_int)
 ```
 
+
 ### AIC and BIC
 
 
-```{r, eval = FALSE}
-
-model_2 <- lm(congressional_success ~ nominate_diff, data = comments2)
-
-m2 <- augment(model_2)
-
-
-ggplot(d) + 
-  aes(x =  nominate_diff, y = congressional_success) + 
-  geom_point() + scale_color_discrete() +
-  geom_line(aes(y = m2$.fitted)) + # with .fitted from augment()
-  geom_point(aes(y = m2$.fitted), shape = 1, alpha = .2) + # with .fitted from augment()
-    geom_segment(aes(xend = nominate_diff, yend = m2$.fitted ), alpha = .2, size = 2)
-
-
+```{r}
+glance(model_int)
+glance(model_mul)
 ```
+
 
 
 # Discussion
